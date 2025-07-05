@@ -29,18 +29,18 @@ describe("json", () => {
   });
 });
 
-describe("toggleTask", () => {
-  it("should make the task status as true | calling for the first time", () => {
+describe("changeTaskDoneState", () => {
+  it("should make the task status as true", () => {
     const task = new Task(0, "test-task");
     const expectedJSON = { task_ID: 0, description: "test-task", done: true };
 
-    assertEquals(task.toggleTask().json(), expectedJSON);
+    assertEquals(task.changeTaskDoneState(true).json(), expectedJSON);
   });
 
-  it("should make the task status as false | calling for the second time", () => {
+  it("should make the task status as false", () => {
     const task = new Task(0, "test-task");
     const expectedJSON = { task_ID: 0, description: "test-task", done: false };
 
-    assertEquals(task.toggleTask().toggleTask().json(), expectedJSON);
+    assertEquals(task.changeTaskDoneState(false).json(), expectedJSON);
   });
 });

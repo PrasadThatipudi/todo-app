@@ -11,8 +11,9 @@ class Task {
     this.done = done;
   }
 
-  toggleTask(): Task {
-    this.done = !this.done;
+  changeTaskDoneState(newDoneState: boolean): Task {
+    this.done = newDoneState;
+
     return this;
   }
 
