@@ -106,3 +106,21 @@ describe("getTodoById", () => {
     assert(todo !== null);
   });
 });
+
+describe("removeTodo", () => {
+  it("should remove a todo by id and return removed todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const addedTodoId = todoManager.addTodo("Test Todo");
+
+    const removedTodo = todoManager.removeTodo(addedTodoId)!;
+
+    assertEquals(removedTodo.id, addedTodoId);
+  });
+
+  it("should return null when todo id is not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const result = todoManager.removeTodo(999);
+
+    assertEquals(result, null);
+  });
+});

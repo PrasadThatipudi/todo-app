@@ -37,6 +37,15 @@ class TodoManager {
     return todo.addTask(taskDescription) ?? -1;
   }
 
+  removeTodo(todoId: number): Todo | null {
+    if (!this.todos.has(todoId)) return null;
+
+    const targetTodo = this.getTodoById(todoId);
+    this.todos.delete(todoId);
+
+    return targetTodo;
+  }
+
   getTodoById(id: number): Todo | null {
     return this.todos.get(id) || null;
   }
