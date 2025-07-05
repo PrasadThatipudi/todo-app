@@ -3,14 +3,21 @@ import { TaskJSON } from "../types.ts";
 class Task {
   private readonly id: number;
   private readonly description: string;
+  private done: boolean;
 
-  constructor(id: number, description: string) {
+  constructor(id: number, description: string, done: boolean = false) {
     this.id = id;
     this.description = description;
+    this.done = done;
+  }
+
+  toggleTask(): Task {
+    this.done = !this.done;
+    return this;
   }
 
   json(): TaskJSON {
-    return { task_ID: 0, description: "test-task", done: false };
+    return { task_ID: this.id, description: this.description, done: this.done };
   }
 }
 
