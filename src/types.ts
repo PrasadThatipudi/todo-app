@@ -4,4 +4,10 @@ interface TaskJSON {
   done: boolean;
 }
 
-export type { TaskJSON };
+interface TodoJSON {
+  todo_ID: number;
+  title: string;
+  tasks: TaskJSON[];
+}
+
+export type { TaskJSON, TodoJSON };
