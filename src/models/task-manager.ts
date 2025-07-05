@@ -1,7 +1,7 @@
 import { Task } from "./task.ts";
 
 class TaskManager {
-  private tasks: Task[] = [];
+  private tasks: Map<number, Task> = new Map();
   private readonly idGenerator: () => number;
 
   constructor(idGenerator: () => number) {
@@ -9,27 +9,27 @@ class TaskManager {
   }
 
   getAllTasks(): Task[] {
-    return this.tasks;
+    return Array.from(this.tasks.values());
   }
 
   getTaskById(taskId: number): Task | null {
-    return this.tasks.find((task) => task.id === taskId) || null;
+    return this.tasks.get(taskId) || null;
   }
 
   addTask(description: string): Task | null {
     if (!description || description.trim() === "") return null;
 
-    const task = new Task(this.idGenerator(), description);
-    this.tasks.push(task);
+    const taskId = this.idGenerator();
+    this.tasks.set(taskId, new Task(taskId, description));
 
-    return task;
+    return new Task(taskId, description);
   }
 
   removeTask(taskId: number): Task | null {
     const targetTask = this.getTaskById(taskId);
 
     if (!targetTask) return null;
-    this.tasks = this.tasks.filter((task) => task.id !== taskId);
+    this.tasks.delete(taskId);
 
     return targetTask;
   }

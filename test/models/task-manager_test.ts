@@ -11,14 +11,16 @@ describe("getAllTasks", () => {
   });
 
   it("should return all added tasks", () => {
-    const taskManager = new TaskManager(() => 0);
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = new TaskManager(idGenerator(0));
 
-    taskManager.addTask("test-task-1");
-    taskManager.addTask("test-task-2");
+    const task1 = taskManager.addTask("test-task-1");
+    const task2 = taskManager.addTask("test-task-2");
 
     const tasks = taskManager.getAllTasks();
 
     assertEquals(tasks.length, 2);
+    assertEquals(tasks, [task1, task2]);
   });
 });
 
