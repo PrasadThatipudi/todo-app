@@ -10,7 +10,7 @@
       "dependencies": ["test-coverage"]
     },
     "dev-check": {
-      "dependencies": ["format", "lint", "coverage"]
+      "dependencies": ["coverage", "format", "lint"]
     }
   },
   "imports": {

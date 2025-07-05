@@ -71,3 +71,24 @@ describe("addTask", () => {
     assertEquals(todo2.taskManager.getTaskById(taskId2!)?.json(), taskJSON2);
   });
 });
+
+describe("getTaskById", () => {
+  it("should return task by id", () => {
+    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask(taskJSON.description);
+
+    const task = todo.getTaskById(taskId!);
+
+    assert(task !== null);
+    assertEquals(task?.json(), taskJSON);
+  });
+
+  it("should return null if task does not exist", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const task = todo.getTaskById(999);
+
+    assertEquals(task, null);
+  });
+});

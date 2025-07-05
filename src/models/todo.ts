@@ -1,5 +1,6 @@
 import { TodoJSON } from "../types.ts";
 import { TaskManager } from "./task-manager.ts";
+import { Task } from "./task.ts";
 
 class Todo {
   readonly id: number;
@@ -20,6 +21,10 @@ class Todo {
     const addedTask = this.taskManager.addTask(description);
 
     return addedTask ? addedTask.id : null;
+  }
+
+  getTaskById(taskId: number): Task | null {
+    return this.taskManager.getTaskById(taskId);
   }
 
   json(): TodoJSON {
