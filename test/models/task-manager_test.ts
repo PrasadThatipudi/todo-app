@@ -71,3 +71,22 @@ describe("getTaskById", () => {
     assertEquals(taskManager.getTaskById(0), task);
   });
 });
+
+describe("removeTask", () => {
+  it("should return null for non-existing task", () => {
+    const taskManager = new TaskManager(() => 0);
+    const removedTask = taskManager.removeTask(1);
+
+    assertEquals(removedTask, null);
+    assertEquals(taskManager.getAllTasks().length, 0);
+  });
+
+  it("should return the removed task", () => {
+    const taskManager = new TaskManager(() => 0);
+    const task = taskManager.addTask("test-task-1");
+    const removedTask = taskManager.removeTask(0);
+
+    assertEquals(removedTask, task);
+    assertEquals(taskManager.getAllTasks().length, 0);
+  });
+});

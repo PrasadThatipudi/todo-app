@@ -1,7 +1,7 @@
 import { Task } from "./task.ts";
 
 class TaskManager {
-  private readonly tasks: Task[] = [];
+  private tasks: Task[] = [];
   private readonly idGenerator: () => number;
 
   constructor(idGenerator: () => number) {
@@ -23,6 +23,15 @@ class TaskManager {
     this.tasks.push(task);
 
     return task;
+  }
+
+  removeTask(taskId: number): Task | null {
+    const targetTask = this.getTaskById(taskId);
+
+    if (!targetTask) return null;
+    this.tasks = this.tasks.filter((task) => task.id !== taskId);
+
+    return targetTask;
   }
 }
 
