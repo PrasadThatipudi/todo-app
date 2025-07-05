@@ -28,17 +28,31 @@ describe("addTask", () => {
     const task = { task_Id: 0, description: "test-task-1", done: false };
     const addedTask = taskManager.addTask("test-task-1");
 
-    assertEquals(addedTask.json(), task);
+    assertEquals(addedTask!.json(), task);
     assertEquals(taskManager.getAllTasks().length, 1);
   });
 
-  it("should add a task with different id", () => {
-    const taskManager = new TaskManager(() => 1);
-    const task = { task_Id: 1, description: "test-task-1", done: false };
-    const addedTask = taskManager.addTask("test-task-1");
+  it("should use idGenerator to give id to task", () => {
+    const taskManager1 = new TaskManager(() => 1);
+    const taskManager2 = new TaskManager(() => 2);
 
-    assertEquals(addedTask.json(), task);
-    assertEquals(taskManager.getAllTasks().length, 1);
+    const task1 = { task_Id: 1, description: "test-task-1", done: false };
+    const task2 = { task_Id: 2, description: "test-task-2", done: false };
+    const addedTask1 = taskManager1.addTask("test-task-1");
+    const addedTask2 = taskManager2.addTask("test-task-2");
+
+    assertEquals(addedTask1!.json(), task1);
+    assertEquals(addedTask2!.json(), task2);
+    assertEquals(taskManager1.getAllTasks().length, 1);
+    assertEquals(taskManager2.getAllTasks().length, 1);
+  });
+
+  it("should return null if task description is empty", () => {
+    const taskManager = new TaskManager(() => 0);
+    const addedTask = taskManager.addTask("");
+
+    assertEquals(addedTask, null);
+    assertEquals(taskManager.getAllTasks().length, 0);
   });
 });
 

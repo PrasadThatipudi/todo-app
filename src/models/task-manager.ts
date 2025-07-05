@@ -16,7 +16,9 @@ class TaskManager {
     return this.tasks.find((task) => task.id === taskId) || null;
   }
 
-  addTask(description: string): Task {
+  addTask(description: string): Task | null {
+    if (!description || description.trim() === "") return null;
+
     const task = new Task(this.idGenerator(), description);
     this.tasks.push(task);
 

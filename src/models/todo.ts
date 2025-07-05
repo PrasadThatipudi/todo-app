@@ -1,12 +1,25 @@
 import { TodoJSON } from "../types.ts";
+import { TaskManager } from "./task-manager.ts";
 
 class Todo {
-  private readonly id: number;
+  readonly id: number;
   private readonly title: string;
+  readonly taskManager: TaskManager;
 
-  constructor(id: number, title: string) {
+  private constructor(id: number, title: string, taskManager: TaskManager) {
     this.id = id;
     this.title = title;
+    this.taskManager = taskManager;
+  }
+
+  static init(todoId: number, title: string, idGenerator: () => number): Todo {
+    return new Todo(todoId, title, new TaskManager(idGenerator));
+  }
+
+  addTask(description: string): number | null {
+    const addedTask = this.taskManager.addTask(description);
+
+    return addedTask ? addedTask.id : null;
   }
 
   json(): TodoJSON {
