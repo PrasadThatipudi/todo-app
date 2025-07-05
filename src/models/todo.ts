@@ -10,7 +10,7 @@ class Todo {
   }
 
   json(): TodoJSON {
-    return { todo_ID: this.id, title: this.title, tasks: [] };
+    return { todo_Id: this.id, title: this.title, tasks: [] };
   }
 }
 

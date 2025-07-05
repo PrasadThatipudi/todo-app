@@ -1,11 +1,11 @@
 interface TaskJSON {
-  task_ID: number;
+  task_Id: number;
   description: string;
   done: boolean;
 }
 
 interface TodoJSON {
-  todo_ID: number;
+  todo_Id: number;
   title: string;
   tasks: TaskJSON[];
 }
