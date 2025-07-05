@@ -3,27 +3,27 @@ import { Todo } from "./todo.ts";
 class TodoManager {
   todos: Map<number, Todo> = new Map();
   taskIdGenerator: (start: number) => () => number;
-  todoIdGenerator: () => number;
+  nextTodoId: () => number;
 
   private constructor(
-    todoIdGenerator: () => number,
+    nextTodoId: () => number,
     taskIdGenerator: (start: number) => () => number,
   ) {
-    this.todoIdGenerator = todoIdGenerator;
+    this.nextTodoId = nextTodoId;
     this.taskIdGenerator = taskIdGenerator;
   }
 
   static init(
-    todoIdGenerator: () => number,
+    nextTodoId: () => number,
     taskIdGenerator: (start: number) => () => number,
   ) {
-    return new TodoManager(todoIdGenerator, taskIdGenerator);
+    return new TodoManager(nextTodoId, taskIdGenerator);
   }
 
   addTodo(title: string): number {
     if (title.trim() === "") return -1;
 
-    const todo = Todo.init(0, title, this.taskIdGenerator(0));
+    const todo = Todo.init(this.nextTodoId(), title, this.taskIdGenerator(0));
     this.todos.set(todo.id, todo);
 
     return todo.id;
