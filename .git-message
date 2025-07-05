@@ -1,0 +1,25 @@
+STORY-####: <Short, imperative summary of the change>
+
+Description
+
+Explain _what_ was done and _why_. Include any relevant context for the change:
+
+- What problem does this solve?
+- Why was this approach taken?
+
+Changes
+
+- Bullet-point summary of the main code or feature changes
+- List significant files or modules affected (if helpful)
+
+Testing
+
+Describe how the change was tested:
+
+- Manual testing steps
+- Unit/integration tests added or updated
+- Edge cases considered
+
+Notes (Optional)
+
+Add any implementation notes, TODOs, or things to watch out for in code review.
