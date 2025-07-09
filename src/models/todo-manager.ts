@@ -1,3 +1,4 @@
+import { TodoJSON } from "../types.ts";
 import { Todo } from "./todo.ts";
 
 class TodoManager {
@@ -52,6 +53,10 @@ class TodoManager {
 
   getAllTodos(): Todo[] {
     return Array.from(this.todos.values());
+  }
+
+  json(): TodoJSON[] {
+    return this.getAllTodos().map((todo) => todo.json());
   }
 }
 

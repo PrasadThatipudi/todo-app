@@ -1,3 +1,4 @@
+import { TaskJSON } from "../types.ts";
 import { Task } from "./task.ts";
 
 class TaskManager {
@@ -32,6 +33,10 @@ class TaskManager {
     this.tasks.delete(taskId);
 
     return targetTask;
+  }
+
+  json(): TaskJSON[] {
+    return this.getAllTasks().map((task) => task.json());
   }
 }
 

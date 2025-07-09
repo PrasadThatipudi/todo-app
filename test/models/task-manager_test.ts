@@ -92,3 +92,27 @@ describe("removeTask", () => {
     assertEquals(taskManager.getAllTasks().length, 0);
   });
 });
+
+describe("json", () => {
+  it("should return an empty array when no tasks are present", () => {
+    const taskManager = new TaskManager(() => 0);
+    const tasks = taskManager.json();
+
+    assertEquals(tasks, []);
+  });
+
+  it("should return all tasks in json format", () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = new TaskManager(idGenerator(0));
+
+    taskManager.addTask("Test Task 1");
+    taskManager.addTask("Test Task 2");
+
+    const tasks = taskManager.json();
+    assertEquals(tasks.length, 2);
+    assertEquals(tasks, [
+      { task_Id: 0, description: "Test Task 1", done: false },
+      { task_Id: 1, description: "Test Task 2", done: false },
+    ]);
+  });
+});

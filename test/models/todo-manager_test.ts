@@ -3,6 +3,7 @@ import { stub } from "@std/testing/mock";
 import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assert } from "@std/assert/assert";
 import { assertEquals } from "@std/assert/equals";
+import { TodoJSON } from "../../src/types.ts";
 
 const idGenerator = (start: number) => () => start++;
 
@@ -122,5 +123,33 @@ describe("removeTodo", () => {
     const result = todoManager.removeTodo(999);
 
     assertEquals(result, null);
+  });
+});
+
+describe("json", () => {
+  it("should return an empty array when no todos are present", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todos: TodoJSON[] = todoManager.json();
+
+    assertEquals(todos, []);
+  });
+
+  it("should return all todos in json format", () => {
+    const todoManager = TodoManager.init(idGenerator(0), idGenerator);
+
+    todoManager.addTodo("Test Todo 1");
+    todoManager.addTask(0, "Test Task 1");
+    todoManager.addTodo("Test Todo 2");
+
+    const todos: TodoJSON[] = todoManager.json();
+    assertEquals(todos.length, 2);
+    assertEquals(todos, [
+      {
+        todo_Id: 0,
+        title: "Test Todo 1",
+        tasks: [{ task_Id: 0, description: "Test Task 1", done: false }],
+      },
+      { todo_Id: 1, title: "Test Todo 2", tasks: [] },
+    ]);
   });
 });

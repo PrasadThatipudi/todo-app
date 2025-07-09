@@ -28,7 +28,11 @@ class Todo {
   }
 
   json(): TodoJSON {
-    return { todo_Id: this.id, title: this.title, tasks: [] };
+    return {
+      todo_Id: this.id,
+      title: this.title,
+      tasks: this.taskManager.json(),
+    };
   }
 }
 

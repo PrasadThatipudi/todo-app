@@ -22,6 +22,27 @@ describe("json", () => {
     assertEquals(todo1.json(), todoJSON1);
     assertEquals(todo2.json(), todoJSON2);
   });
+
+  it("should return tasks which involved in todo", () => {
+    const idGenerator = (start: number) => () => start++;
+    const todo = Todo.init(0, "testing", idGenerator(0));
+    const task1Id = todo.addTask("task-1");
+    const task2Id = todo.addTask("task-2");
+
+    assertEquals(task1Id, 0);
+    assertEquals(task2Id, 1);
+
+    const todoJSON: TodoJSON = {
+      todo_Id: 0,
+      title: "testing",
+      tasks: [
+        { task_Id: task1Id!, description: "task-1", done: false },
+        { task_Id: task2Id!, description: "task-2", done: false },
+      ],
+    };
+
+    assertEquals(todo.json(), todoJSON);
+  });
 });
 
 describe("init", () => {
