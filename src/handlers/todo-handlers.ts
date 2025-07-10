@@ -1,9 +1,20 @@
 import { Context } from "hono";
+import { AppVariables } from "../types.ts";
 
-const serveTodos = (c: Context) => {
-  const todoManager = c.get("todoManager");
+const serveTodos = (ctx: Context<{ Variables: AppVariables }>) => {
+  const todoManager = ctx.get("todoManager");
 
-  return c.json(todoManager.json());
+  return ctx.json(todoManager.json());
 };
 
-export { serveTodos };
+const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
+  const todoManager = ctx.get("todoManager");
+  const { title } = await ctx.req.json();
+
+  const newTodoId = todoManager.addTodo(title);
+  const newTodo = todoManager.getTodoById(newTodoId)!;
+
+  return ctx.json(newTodo.json(), 201);
+};
+
+export { handleAddTodo, serveTodos };
