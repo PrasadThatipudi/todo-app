@@ -1,9 +1,11 @@
 import { describe, it } from "@std/testing/bdd";
-import { stub } from "@std/testing/mock";
+import { assertSpyCallArgs, stub } from "@std/testing/mock";
 import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assert } from "@std/assert/assert";
 import { assertEquals } from "@std/assert/equals";
-import { TodoJSON } from "../../src/types.ts";
+import { TaskJSON, TodoJSON } from "../../src/types.ts";
+import { Task } from "../../src/models/task.ts";
+import { assertFalse } from "@std/assert/false";
 
 const idGenerator = (start: number) => () => start++;
 
@@ -12,6 +14,21 @@ describe("init", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
 
     assert(todoManager instanceof TodoManager);
+  });
+});
+
+describe("hasTodo", () => {
+  it("should return false if the todo is not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    assertFalse(todoManager.hasTodo(0));
+  });
+
+  it("should return true if the todo is exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test");
+
+    assert(todoManager.hasTodo(todoId));
   });
 });
 
@@ -123,6 +140,42 @@ describe("removeTodo", () => {
     const result = todoManager.removeTodo(999);
 
     assertEquals(result, null);
+  });
+});
+
+describe("getTaskJson", () => {
+  it("should return null if todoId is not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    assertEquals(todoManager.getTaskJson(0, 0), null);
+  });
+
+  it("should return null if taskId is not exist in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    todoManager.addTodo("Test Todo");
+
+    assertEquals(todoManager.getTaskJson(0, 0), null);
+  });
+
+  it("should return task in json", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    const todo = todoManager.getTodoById(todoId)!;
+
+    const expectedTaskJson: TaskJSON = {
+      task_Id: 0,
+      description: "Test Task",
+      done: false,
+    };
+
+    const task = new Task(0, "Test Task");
+    const getTaskStub = stub(todo, "getTaskById", () => task);
+    const jsonTaskStub = stub(task, "json", () => expectedTaskJson);
+
+    assertEquals(todoManager.getTaskJson(0, 0), task.json());
+    assertSpyCallArgs(getTaskStub, 0, [0]);
+    assertSpyCallArgs(jsonTaskStub, 1, []);
   });
 });
 

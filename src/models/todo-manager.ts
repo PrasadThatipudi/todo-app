@@ -1,4 +1,4 @@
-import { TodoJSON } from "../types.ts";
+import { TaskJSON, TodoJSON } from "../types.ts";
 import { Todo } from "./todo.ts";
 
 class TodoManager {
@@ -19,6 +19,10 @@ class TodoManager {
     taskIdGenerator: (start: number) => () => number,
   ) {
     return new TodoManager(nextTodoId, taskIdGenerator);
+  }
+
+  hasTodo(todoId: number): boolean {
+    return this.todos.has(todoId);
   }
 
   addTodo(title: string): number {
@@ -49,6 +53,15 @@ class TodoManager {
 
   getTodoById(id: number): Todo | null {
     return this.todos.get(id) || null;
+  }
+
+  getTaskJson(todoId: number, taskId: number): TaskJSON | null {
+    if (!this.todos.has(todoId)) return null;
+
+    const targetTodo = this.getTodoById(todoId);
+    const targetTask = targetTodo?.getTaskById(taskId);
+
+    return targetTask?.json() || null;
   }
 
   getAllTodos(): Todo[] {
