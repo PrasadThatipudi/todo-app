@@ -1,8 +1,9 @@
 import createApp from "./src/app.ts";
 import { TodoManager } from "./src/models/todo-manager.ts";
 
-const todoIdGenerator = (start: number = 0) => start++;
-const taskIdGenerator = () => (start: number = 0) => start++;
+const idGenerator = (start: number) => () => start++;
+const todoIdGenerator = idGenerator(0);
+const taskIdGenerator = idGenerator;
 
 const main = () => {
   const appContext = {

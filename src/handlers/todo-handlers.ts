@@ -9,9 +9,16 @@ const serveTodos = (ctx: Context<{ Variables: AppVariables }>) => {
 
 const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
   const todoManager = ctx.get("todoManager");
-  const { title } = await ctx.req.json();
+  const body = await ctx.req.json();
 
-  const newTodoId = todoManager.addTodo(title);
+  if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+    return ctx.json(
+      { message: "Title is required and must be a string." },
+      400,
+    );
+  }
+
+  const newTodoId = todoManager.addTodo(body.title);
   const newTodo = todoManager.getTodoById(newTodoId)!;
 
   return ctx.json(newTodo.json(), 201);
