@@ -2,7 +2,7 @@ import { TaskJSON } from "../types.ts";
 
 class Task {
   readonly id: number;
-  private readonly description: string;
+  readonly description: string;
   private done: boolean;
 
   constructor(id: number, description: string, done: boolean = false) {

@@ -176,4 +176,23 @@ describe("handleAddTask", () => {
     assertSpyCallArgs(getTaskStub, 0, [todoId1, 0]);
     assertSpyCallArgs(getTaskStub, 1, [todoId1, 1]);
   });
+
+  it("should respond with 409 if task description is already exist", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    todoManager.addTask(todoId, "Existed");
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks`, {
+      method: "POST",
+      body: JSON.stringify({ description: "Existed" }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    assertEquals(response.status, 409);
+    const jsonResponse = await response.json();
+    assertEquals(jsonResponse, { message: "Task already exists!" });
+  });
 });

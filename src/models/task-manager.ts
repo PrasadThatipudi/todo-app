@@ -17,13 +17,25 @@ class TaskManager {
     return this.tasks.get(taskId) || null;
   }
 
-  addTask(description: string): Task | null {
-    if (!description || description.trim() === "") return null;
+  hasTask(lookUpKey: number | string): boolean {
+    // lookUpKey -> taskId
+    if (typeof lookUpKey === "number") return this.tasks.has(lookUpKey);
+
+    //lookUpKey -> description
+    return this.tasks
+      .values()
+      .some((task: Task) => task.description === lookUpKey);
+  }
+
+  addTask(inputDescription: string): number | null {
+    const description = inputDescription.trim();
+
+    if (!description) return null;
 
     const taskId = this.idGenerator();
     this.tasks.set(taskId, new Task(taskId, description));
 
-    return new Task(taskId, description);
+    return taskId;
   }
 
   removeTask(taskId: number): Task | null {

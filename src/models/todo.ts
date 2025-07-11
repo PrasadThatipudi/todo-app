@@ -4,7 +4,7 @@ import { Task } from "./task.ts";
 
 class Todo {
   readonly id: number;
-  private readonly title: string;
+  readonly title: string;
   readonly taskManager: TaskManager;
 
   private constructor(id: number, title: string, taskManager: TaskManager) {
@@ -17,14 +17,21 @@ class Todo {
     return new Todo(todoId, title, new TaskManager(idGenerator));
   }
 
-  addTask(description: string): number | null {
-    const addedTask = this.taskManager.addTask(description);
-
-    return addedTask ? addedTask.id : null;
-  }
-
   getTaskById(taskId: number): Task | null {
     return this.taskManager.getTaskById(taskId);
+  }
+
+  hasTask(lookUpKey: number | string): boolean {
+    return this.taskManager.hasTask(lookUpKey);
+  }
+
+  addTask(description: string): number | null {
+    if (this.taskManager.hasTask(description)) return null;
+
+    const taskId = this.taskManager.addTask(description);
+    const addedTask = this.taskManager.getTaskById(taskId!);
+
+    return addedTask ? addedTask.id : null;
   }
 
   json(): TodoJSON {

@@ -21,12 +21,21 @@ class TodoManager {
     return new TodoManager(nextTodoId, taskIdGenerator);
   }
 
-  hasTodo(todoId: number): boolean {
-    return this.todos.has(todoId);
+  hasTodo(lookUpKey: number | string): boolean {
+    if (typeof lookUpKey === "number") return this.todos.has(Number(lookUpKey));
+
+    return this.todos.values().some((todo) => todo.title === lookUpKey);
   }
 
-  addTodo(title: string): number {
-    if (title.trim() === "") return -1;
+  hasTask(todoId: number, lookUpKey: number | string): boolean {
+    return this.hasTodo(todoId) && this.getTodoById(todoId)!.hasTask(lookUpKey);
+  }
+
+  addTodo(inputTitle: string): number {
+    const title = inputTitle.trim();
+
+    if (title === "") return -1;
+    if (this.hasTodo(title)) return -1;
 
     const todo = Todo.init(this.nextTodoId(), title, this.taskIdGenerator(0));
     this.todos.set(todo.id, todo);

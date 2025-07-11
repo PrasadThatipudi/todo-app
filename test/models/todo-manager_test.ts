@@ -30,6 +30,57 @@ describe("hasTodo", () => {
 
     assert(todoManager.hasTodo(todoId));
   });
+
+  it("should return false if title is not exists", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    assertFalse(todoManager.hasTodo("Non-existent Todo"));
+  });
+
+  it("should return true if title is exists", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    todoManager.addTodo("Existing Todo");
+
+    assert(todoManager.hasTodo("Existing Todo"));
+  });
+});
+
+describe("hasTask", () => {
+  it("should return false if the task is not exist in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+
+    assertFalse(todoManager.hasTask(todoId, 0));
+  });
+
+  it("should return true if the task is exist in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    todoManager.addTask(todoId, "Test Task");
+
+    assert(todoManager.hasTask(todoId, 0));
+  });
+
+  it("should return false if the todo does not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    assertFalse(todoManager.hasTask(999, 0));
+  });
+
+  it("should return false if the task description does not exist in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+
+    assertFalse(todoManager.hasTask(todoId, "Non-existent Task"));
+  });
+
+  it("should return true if the task description exists in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    todoManager.addTask(todoId, "Existing Task");
+
+    assert(todoManager.hasTask(todoId, "Existing Task"));
+  });
 });
 
 describe("getAllTodos", () => {
@@ -59,6 +110,14 @@ describe("addTodo", () => {
     assertEquals(addedTodo, -1);
   });
 
+  it("should add trimmed title", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const addedTodo = todoManager.addTodo("   Test Todo   ");
+
+    assertEquals(addedTodo, 0);
+    assertEquals(todoManager.getTodoById(addedTodo)?.title, "Test Todo");
+  });
+
   it("should return added todo when title is valid", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
     const addedTodoId = todoManager.addTodo("Test Todo");
@@ -78,6 +137,15 @@ describe("addTodo", () => {
     assertEquals(addedTodoId1, 0);
     assertEquals(addedTodoId2, 1);
   });
+
+  it("should return -1 if title is already exists", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    todoManager.addTodo("Test Todo");
+    const addedTodoId = todoManager.addTodo("Test Todo");
+
+    assertEquals(addedTodoId, -1);
+    assertEquals(todoManager.getAllTodos().length, 1);
+  });
 });
 
 describe("addTask", () => {
@@ -88,6 +156,17 @@ describe("addTask", () => {
     const taskId = todoManager.addTask(todoId, "");
 
     assertEquals(taskId, -1);
+  });
+
+  it("should add trimmed task description", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+
+    const todoId = todoManager.addTodo("Test Todo");
+    const taskId = todoManager.addTask(todoId, "   Test Task   ");
+
+    const task = todoManager.getTodoById(todoId)?.getTaskById(taskId);
+
+    assertEquals(task?.description, "Test Task");
   });
 
   it("should return -1 when todo does not exist", () => {

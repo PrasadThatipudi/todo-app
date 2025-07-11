@@ -11,6 +11,10 @@ const handleAddTask = async (ctx: Context<{ Variables: AppVariables }>) => {
     return ctx.json({ message: "Todo is not exist!" }, 404);
   }
 
+  if (todoManager.hasTask(todoId, taskDescription)) {
+    return ctx.json({ message: "Task already exists!" }, 409);
+  }
+
   const taskId = todoManager.addTask(todoId, taskDescription);
   const taskJson = todoManager.getTaskJson(todoId, taskId)!;
 

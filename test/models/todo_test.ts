@@ -1,8 +1,125 @@
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertFalse } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 import { Todo } from "../../src/models/todo.ts";
 import { TodoJSON } from "../../src/types.ts";
 import { TaskManager } from "../../src/models/task-manager.ts";
+
+describe("init", () => {
+  it("should initialize a todo with id, title and taskManager", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+
+    assert(todo instanceof Todo);
+    assert(todo.taskManager instanceof TaskManager);
+    assertEquals(todo.json(), { todo_Id: 0, title: "testing", tasks: [] });
+  });
+});
+
+describe("getTaskById", () => {
+  it("should return task by id", () => {
+    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask(taskJSON.description);
+
+    const task = todo.getTaskById(taskId!);
+
+    assert(task !== null);
+    assertEquals(task?.json(), taskJSON);
+  });
+
+  it("should return null if task does not exist", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const task = todo.getTaskById(999);
+
+    assertEquals(task, null);
+  });
+});
+
+describe("hasTask", () => {
+  it("should return false if task is not exists in todo", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+
+    assertFalse(todo.hasTask(0));
+  });
+
+  it("should return true if task is exists in todo", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask("Test Task");
+
+    assert(todo.hasTask(taskId!));
+  });
+
+  it("should return false if task description not exists in todo", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+
+    assertFalse(todo.hasTask("Non-existent Task"));
+  });
+
+  it("should return true if task description exists in todo", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    todo.addTask("Existing Task");
+
+    assert(todo.hasTask("Existing Task"));
+  });
+});
+
+describe("addTask", () => {
+  it("should add a task and return its id", () => {
+    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask(taskJSON.description);
+
+    assertEquals(taskId, 0);
+    assertEquals(todo.taskManager.getAllTasks().length, 1);
+    assertEquals(todo.taskManager.getTaskById(taskId!)?.json(), taskJSON);
+  });
+
+  it("should add a task with trimmed description", () => {
+    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask("  test-task  ");
+
+    assertEquals(taskId, 0);
+    assertEquals(todo.taskManager.getAllTasks().length, 1);
+    assertEquals(todo.taskManager.getTaskById(taskId!)?.json(), taskJSON);
+  });
+
+  it("should return null if task description is empty string", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask("");
+
+    assertEquals(taskId, null);
+    assertEquals(todo.taskManager.getAllTasks().length, 0);
+  });
+
+  it("should use idGenerator to give id to task", () => {
+    const todo1 = Todo.init(0, "testing-1", () => 1);
+    const todo2 = Todo.init(1, "testing-2", () => 2);
+
+    const taskJSON1 = { task_Id: 1, description: "test-task-1", done: false };
+    const taskJSON2 = { task_Id: 2, description: "test-task-2", done: false };
+
+    const taskId1 = todo1.addTask(taskJSON1.description);
+    const taskId2 = todo2.addTask(taskJSON2.description);
+
+    assertEquals(taskId1, 1);
+    assertEquals(taskId2, 2);
+    assertEquals(todo1.taskManager.getAllTasks().length, 1);
+    assertEquals(todo2.taskManager.getAllTasks().length, 1);
+    assertEquals(todo1.taskManager.getTaskById(taskId1!)?.json(), taskJSON1);
+    assertEquals(todo2.taskManager.getTaskById(taskId2!)?.json(), taskJSON2);
+  });
+
+  it("should return null if the given task is already existed", () => {
+    const todo = Todo.init(0, "testing-1", () => 1);
+
+    const taskId1 = todo.addTask("Test Task");
+    const taskId2 = todo.addTask("Test Task"); // Adding a duplicate task
+
+    assertEquals(taskId1, 1);
+    assertEquals(taskId2, null);
+  });
+});
 
 describe("json", () => {
   it("create a todo with title and id | tasks as empty array", () => {
@@ -42,74 +159,5 @@ describe("json", () => {
     };
 
     assertEquals(todo.json(), todoJSON);
-  });
-});
-
-describe("init", () => {
-  it("should initialize a todo with id, title and taskManager", () => {
-    const todo = Todo.init(0, "testing", () => 0);
-
-    assert(todo instanceof Todo);
-    assert(todo.taskManager instanceof TaskManager);
-    assertEquals(todo.json(), { todo_Id: 0, title: "testing", tasks: [] });
-  });
-});
-
-describe("addTask", () => {
-  it("should add a task and return its id", () => {
-    const taskJSON = { task_Id: 0, description: "test-task", done: false };
-    const todo = Todo.init(0, "testing", () => 0);
-    const taskId = todo.addTask(taskJSON.description);
-
-    assertEquals(taskId, 0);
-    assertEquals(todo.taskManager.getAllTasks().length, 1);
-    assertEquals(todo.taskManager.getTaskById(taskId!)?.json(), taskJSON);
-  });
-
-  it("should return null if task description is empty string", () => {
-    const todo = Todo.init(0, "testing", () => 0);
-    const taskId = todo.addTask("");
-
-    assertEquals(taskId, null);
-    assertEquals(todo.taskManager.getAllTasks().length, 0);
-  });
-
-  it("should use idGenerator to give id to task", () => {
-    const todo1 = Todo.init(0, "testing-1", () => 1);
-    const todo2 = Todo.init(1, "testing-2", () => 2);
-
-    const taskJSON1 = { task_Id: 1, description: "test-task-1", done: false };
-    const taskJSON2 = { task_Id: 2, description: "test-task-2", done: false };
-
-    const taskId1 = todo1.addTask(taskJSON1.description);
-    const taskId2 = todo2.addTask(taskJSON2.description);
-
-    assertEquals(taskId1, 1);
-    assertEquals(taskId2, 2);
-    assertEquals(todo1.taskManager.getAllTasks().length, 1);
-    assertEquals(todo2.taskManager.getAllTasks().length, 1);
-    assertEquals(todo1.taskManager.getTaskById(taskId1!)?.json(), taskJSON1);
-    assertEquals(todo2.taskManager.getTaskById(taskId2!)?.json(), taskJSON2);
-  });
-});
-
-describe("getTaskById", () => {
-  it("should return task by id", () => {
-    const taskJSON = { task_Id: 0, description: "test-task", done: false };
-
-    const todo = Todo.init(0, "testing", () => 0);
-    const taskId = todo.addTask(taskJSON.description);
-
-    const task = todo.getTaskById(taskId!);
-
-    assert(task !== null);
-    assertEquals(task?.json(), taskJSON);
-  });
-
-  it("should return null if task does not exist", () => {
-    const todo = Todo.init(0, "testing", () => 0);
-    const task = todo.getTaskById(999);
-
-    assertEquals(task, null);
   });
 });

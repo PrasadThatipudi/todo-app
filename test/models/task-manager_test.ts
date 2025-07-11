@@ -1,6 +1,6 @@
 import { describe, it } from "@std/testing/bdd";
 import { TaskManager } from "../../src/models/task-manager.ts";
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals, assertFalse } from "@std/assert";
 
 describe("getAllTasks", () => {
   it("should return empty array initially", () => {
@@ -14,8 +14,11 @@ describe("getAllTasks", () => {
     const idGenerator = (start: number) => () => start++;
     const taskManager = new TaskManager(idGenerator(0));
 
-    const task1 = taskManager.addTask("test-task-1");
-    const task2 = taskManager.addTask("test-task-2");
+    const task1Id = taskManager.addTask("test-task-1")!;
+    const task2Id = taskManager.addTask("test-task-2")!;
+
+    const task1 = taskManager.getTaskById(task1Id);
+    const task2 = taskManager.getTaskById(task2Id);
 
     const tasks = taskManager.getAllTasks();
 
@@ -24,11 +27,69 @@ describe("getAllTasks", () => {
   });
 });
 
+describe("getTaskById", () => {
+  it("should return null for non-existing task", () => {
+    const taskManager = new TaskManager(() => 0);
+    const task = taskManager.getTaskById(1);
+
+    assertEquals(task, null);
+  });
+
+  it("should return the added task", () => {
+    const taskManager = new TaskManager(() => 0);
+    const taskId = taskManager.addTask("test-task-1");
+    const task = taskManager.getTaskById(taskId!);
+
+    assertEquals(taskManager.getTaskById(0), task);
+  });
+});
+
+describe("hasTask", () => {
+  it("should return false if the task is new", () => {
+    const taskManager = new TaskManager(() => 0);
+
+    assertFalse(taskManager.hasTask(0));
+  });
+
+  it("should return true if the task is existed", () => {
+    const taskManager = new TaskManager(() => 0);
+
+    const taskId = taskManager.addTask("Test Task")!;
+
+    assert(taskManager.hasTask(taskId));
+  });
+
+  it("should return false if the description is new", () => {
+    const taskManager = new TaskManager(() => 0);
+
+    assertFalse(taskManager.hasTask("Unknown Task"));
+  });
+
+  it("should return true if the description is existed", () => {
+    const taskManager = new TaskManager(() => 0);
+
+    taskManager.addTask("Test Task");
+
+    assert(taskManager.hasTask("Test Task"));
+  });
+});
+
 describe("addTask", () => {
   it("should add a task", () => {
     const taskManager = new TaskManager(() => 0);
     const task = { task_Id: 0, description: "test-task-1", done: false };
-    const addedTask = taskManager.addTask("test-task-1");
+    const taskId = taskManager.addTask("test-task-1")!;
+    const addedTask = taskManager.getTaskById(taskId);
+
+    assertEquals(addedTask!.json(), task);
+    assertEquals(taskManager.getAllTasks().length, 1);
+  });
+
+  it("should add trimmed task description", () => {
+    const taskManager = new TaskManager(() => 0);
+    const task = { task_Id: 0, description: "test-task-1", done: false };
+    const taskId = taskManager.addTask("  test-task-1  ")!;
+    const addedTask = taskManager.getTaskById(taskId);
 
     assertEquals(addedTask!.json(), task);
     assertEquals(taskManager.getAllTasks().length, 1);
@@ -40,8 +101,10 @@ describe("addTask", () => {
 
     const task1 = { task_Id: 1, description: "test-task-1", done: false };
     const task2 = { task_Id: 2, description: "test-task-2", done: false };
-    const addedTask1 = taskManager1.addTask("test-task-1");
-    const addedTask2 = taskManager2.addTask("test-task-2");
+    const task1Id = taskManager1.addTask("test-task-1")!;
+    const addedTask1 = taskManager1.getTaskById(task1Id);
+    const task2Id = taskManager2.addTask("test-task-2")!;
+    const addedTask2 = taskManager2.getTaskById(task2Id);
 
     assertEquals(addedTask1!.json(), task1);
     assertEquals(addedTask2!.json(), task2);
@@ -58,22 +121,6 @@ describe("addTask", () => {
   });
 });
 
-describe("getTaskById", () => {
-  it("should return null for non-existing task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const task = taskManager.getTaskById(1);
-
-    assertEquals(task, null);
-  });
-
-  it("should return the added task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const task = taskManager.addTask("test-task-1");
-
-    assertEquals(taskManager.getTaskById(0), task);
-  });
-});
-
 describe("removeTask", () => {
   it("should return null for non-existing task", () => {
     const taskManager = new TaskManager(() => 0);
@@ -85,7 +132,8 @@ describe("removeTask", () => {
 
   it("should return the removed task", () => {
     const taskManager = new TaskManager(() => 0);
-    const task = taskManager.addTask("test-task-1");
+    const taskId = taskManager.addTask("test-task-1")!;
+    const task = taskManager.getTaskById(taskId);
     const removedTask = taskManager.removeTask(0);
 
     assertEquals(removedTask, task);
