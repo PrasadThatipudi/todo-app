@@ -34,6 +34,10 @@ class Todo {
     return addedTask ? addedTask.id : null;
   }
 
+  toggleTask(taskId: number): boolean {
+    return this.taskManager.toggleTaskDone(taskId);
+  }
+
   json(): TodoJSON {
     return {
       todo_Id: this.id,

@@ -51,6 +51,12 @@ class TodoManager {
     return todo.addTask(taskDescription) ?? -1;
   }
 
+  toggleTask(todoId: number, taskId: number): boolean {
+    return (
+      this.todos.has(todoId) && this.getTodoById(todoId)!.toggleTask(taskId)
+    );
+  }
+
   removeTodo(todoId: number): Todo | null {
     if (!this.todos.has(todoId)) return null;
 

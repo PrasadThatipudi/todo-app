@@ -93,6 +93,23 @@ describe("getAllTodos", () => {
   });
 });
 
+describe("getTodoById", () => {
+  it("should return null when todo does not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todo = todoManager.getTodoById(999);
+
+    assertEquals(todo, null);
+  });
+
+  it("should return the correct todo when it exists", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const addedTodoId = todoManager.addTodo("Test Todo");
+    const todo = todoManager.getTodoById(addedTodoId);
+
+    assert(todo !== null);
+  });
+});
+
 describe("addTodo", () => {
   it("should return -1 if title is empty string", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
@@ -187,20 +204,23 @@ describe("addTask", () => {
   });
 });
 
-describe("getTodoById", () => {
-  it("should return null when todo does not exist", () => {
+describe("toggleTask", () => {
+  it("should return false if todo does not exist", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todo = todoManager.getTodoById(999);
-
-    assertEquals(todo, null);
+    const result = todoManager.toggleTask(999, 0);
+    assertFalse(result);
   });
 
-  it("should return the correct todo when it exists", () => {
+  it("should call toggleTask on the todo", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodoId = todoManager.addTodo("Test Todo");
-    const todo = todoManager.getTodoById(addedTodoId);
+    const todoId = todoManager.addTodo("Test Todo");
+    const taskId = todoManager.addTask(todoId, "Test Task");
+    const todo = todoManager.getTodoById(todoId)!;
+    const toggleTaskStub = stub(todo, "toggleTask", () => true);
 
-    assert(todo !== null);
+    const result = todoManager.toggleTask(todoId, taskId);
+    assert(result);
+    assertSpyCallArgs(toggleTaskStub, 0, [taskId]);
   });
 });
 
@@ -243,7 +263,7 @@ describe("getTaskJson", () => {
     const todo = todoManager.getTodoById(todoId)!;
 
     const expectedTaskJson: TaskJSON = {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task",
       done: false,
     };
@@ -279,7 +299,7 @@ describe("json", () => {
       {
         todo_Id: 0,
         title: "Test Todo 1",
-        tasks: [{ task_Id: 0, description: "Test Task 1", done: false }],
+        tasks: [{ task_id: 0, description: "Test Task 1", done: false }],
       },
       { todo_Id: 1, title: "Test Todo 2", tasks: [] },
     ]);

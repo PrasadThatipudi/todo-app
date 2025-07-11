@@ -13,7 +13,7 @@ describe("handleAddTask", () => {
     const todoId = todoManager.addTodo("Test Todo");
     const appContext = { todoManager };
     const expectedTaskJson: TaskJSON = {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task",
       done: false,
     };
@@ -35,7 +35,7 @@ describe("handleAddTask", () => {
     assertEquals(response.status, 201);
     const jsonResponse: TaskJSON = await response.json();
     assertEquals(jsonResponse, {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task",
       done: false,
     });
@@ -71,13 +71,13 @@ describe("handleAddTask", () => {
     const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
 
     const expectedTaskJson1: TaskJSON = {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task 1",
       done: false,
     };
 
     const expectedTaskJson2: TaskJSON = {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task 2",
       done: false,
     };
@@ -112,12 +112,12 @@ describe("handleAddTask", () => {
     const jsonResponse1: TaskJSON = await response1.json();
     const jsonResponse2: TaskJSON = await response2.json();
     assertEquals(jsonResponse1, {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task 1",
       done: false,
     });
     assertEquals(jsonResponse2, {
-      task_Id: 0,
+      task_id: 0,
       description: "Test Task 2",
       done: false,
     });
@@ -136,7 +136,7 @@ describe("handleAddTask", () => {
     const app = createApp(appContext);
 
     const createTaskJson = (taskId: number): TaskJSON => ({
-      task_Id: taskId,
+      task_id: taskId,
       description: `Test Task ${taskId + 1}`,
       done: false,
     });
@@ -194,5 +194,73 @@ describe("handleAddTask", () => {
     assertEquals(response.status, 409);
     const jsonResponse = await response.json();
     assertEquals(jsonResponse, { message: "Task already exists!" });
+  });
+});
+
+describe("handleToggleTask", () => {
+  it("should respond with 404 if todo is not exist with the given todoId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+
+    const todoId = 0;
+    const taskId = 0;
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
+      method: "PATCH",
+    });
+
+    assertEquals(response.status, 404);
+    const jsonResponse = await response.json();
+
+    assertEquals(jsonResponse, { message: "Todo is not exist!" });
+  });
+
+  it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/0`, {
+      method: "PATCH",
+    });
+
+    assertEquals(response.status, 404);
+    const jsonResponse = await response.json();
+
+    assertEquals(jsonResponse, { message: "Task is not exist!" });
+  });
+
+  it("should return task if task status toggled successfully", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    const taskId = todoManager.addTask(todoId, "Test Task");
+
+    const toggleTaskStub = stub(todoManager, "toggleTask", () => true);
+    const getTaskJsonStub = stub(todoManager, "getTaskJson", () => ({
+      task_id: taskId,
+      description: "Test Task",
+      done: true,
+    }));
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
+      method: "PATCH",
+    });
+
+    assertEquals(response.status, 200);
+    const jsonResponse = await response.json();
+    assertEquals(jsonResponse, {
+      task_id: 0,
+      description: "Test Task",
+      done: true,
+    });
+    assertSpyCallArgs(toggleTaskStub, 0, [todoId, taskId]);
+    assertSpyCallArgs(getTaskJsonStub, 0, [todoId, taskId]);
   });
 });

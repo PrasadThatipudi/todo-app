@@ -3,7 +3,7 @@ import { TaskJSON } from "../types.ts";
 class Task {
   readonly id: number;
   readonly description: string;
-  private done: boolean;
+  done: boolean;
 
   constructor(id: number, description: string, done: boolean = false) {
     this.id = id;
@@ -18,7 +18,7 @@ class Task {
   }
 
   json(): TaskJSON {
-    return { task_Id: this.id, description: this.description, done: this.done };
+    return { task_id: this.id, description: this.description, done: this.done };
   }
 }
 

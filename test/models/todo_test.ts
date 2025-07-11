@@ -3,6 +3,7 @@ import { describe, it } from "@std/testing/bdd";
 import { Todo } from "../../src/models/todo.ts";
 import { TodoJSON } from "../../src/types.ts";
 import { TaskManager } from "../../src/models/task-manager.ts";
+import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
 describe("init", () => {
   it("should initialize a todo with id, title and taskManager", () => {
@@ -16,7 +17,7 @@ describe("init", () => {
 
 describe("getTaskById", () => {
   it("should return task by id", () => {
-    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+    const taskJSON = { task_id: 0, description: "test-task", done: false };
 
     const todo = Todo.init(0, "testing", () => 0);
     const taskId = todo.addTask(taskJSON.description);
@@ -65,7 +66,7 @@ describe("hasTask", () => {
 
 describe("addTask", () => {
   it("should add a task and return its id", () => {
-    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+    const taskJSON = { task_id: 0, description: "test-task", done: false };
     const todo = Todo.init(0, "testing", () => 0);
     const taskId = todo.addTask(taskJSON.description);
 
@@ -75,7 +76,7 @@ describe("addTask", () => {
   });
 
   it("should add a task with trimmed description", () => {
-    const taskJSON = { task_Id: 0, description: "test-task", done: false };
+    const taskJSON = { task_id: 0, description: "test-task", done: false };
     const todo = Todo.init(0, "testing", () => 0);
     const taskId = todo.addTask("  test-task  ");
 
@@ -96,8 +97,8 @@ describe("addTask", () => {
     const todo1 = Todo.init(0, "testing-1", () => 1);
     const todo2 = Todo.init(1, "testing-2", () => 2);
 
-    const taskJSON1 = { task_Id: 1, description: "test-task-1", done: false };
-    const taskJSON2 = { task_Id: 2, description: "test-task-2", done: false };
+    const taskJSON1 = { task_id: 1, description: "test-task-1", done: false };
+    const taskJSON2 = { task_id: 2, description: "test-task-2", done: false };
 
     const taskId1 = todo1.addTask(taskJSON1.description);
     const taskId2 = todo2.addTask(taskJSON2.description);
@@ -118,6 +119,22 @@ describe("addTask", () => {
 
     assertEquals(taskId1, 1);
     assertEquals(taskId2, null);
+  });
+});
+
+describe("toggleTask", () => {
+  it("should call toggleTaskDone on the taskManager", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask("Test Task");
+
+    const taskManagerStub = stub(
+      todo.taskManager,
+      "toggleTaskDone",
+      () => true,
+    );
+    const result = todo.toggleTask(taskId!);
+    assert(result);
+    assertSpyCallArgs(taskManagerStub, 0, [taskId!]);
   });
 });
 
@@ -153,8 +170,8 @@ describe("json", () => {
       todo_Id: 0,
       title: "testing",
       tasks: [
-        { task_Id: task1Id!, description: "task-1", done: false },
-        { task_Id: task2Id!, description: "task-2", done: false },
+        { task_id: task1Id!, description: "task-1", done: false },
+        { task_id: task2Id!, description: "task-2", done: false },
       ],
     };
 

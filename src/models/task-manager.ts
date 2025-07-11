@@ -38,6 +38,15 @@ class TaskManager {
     return taskId;
   }
 
+  toggleTaskDone(taskId: number): boolean {
+    const targetTask = this.getTaskById(taskId);
+
+    if (!targetTask) return false;
+
+    targetTask.changeTaskDoneState(!targetTask.done);
+    return true;
+  }
+
   removeTask(taskId: number): Task | null {
     const targetTask = this.getTaskById(taskId);
 

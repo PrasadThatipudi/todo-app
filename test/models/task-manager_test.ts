@@ -77,7 +77,7 @@ describe("hasTask", () => {
 describe("addTask", () => {
   it("should add a task", () => {
     const taskManager = new TaskManager(() => 0);
-    const task = { task_Id: 0, description: "test-task-1", done: false };
+    const task = { task_id: 0, description: "test-task-1", done: false };
     const taskId = taskManager.addTask("test-task-1")!;
     const addedTask = taskManager.getTaskById(taskId);
 
@@ -87,7 +87,7 @@ describe("addTask", () => {
 
   it("should add trimmed task description", () => {
     const taskManager = new TaskManager(() => 0);
-    const task = { task_Id: 0, description: "test-task-1", done: false };
+    const task = { task_id: 0, description: "test-task-1", done: false };
     const taskId = taskManager.addTask("  test-task-1  ")!;
     const addedTask = taskManager.getTaskById(taskId);
 
@@ -99,8 +99,8 @@ describe("addTask", () => {
     const taskManager1 = new TaskManager(() => 1);
     const taskManager2 = new TaskManager(() => 2);
 
-    const task1 = { task_Id: 1, description: "test-task-1", done: false };
-    const task2 = { task_Id: 2, description: "test-task-2", done: false };
+    const task1 = { task_id: 1, description: "test-task-1", done: false };
+    const task2 = { task_id: 2, description: "test-task-2", done: false };
     const task1Id = taskManager1.addTask("test-task-1")!;
     const addedTask1 = taskManager1.getTaskById(task1Id);
     const task2Id = taskManager2.addTask("test-task-2")!;
@@ -118,6 +118,29 @@ describe("addTask", () => {
 
     assertEquals(addedTask, null);
     assertEquals(taskManager.getAllTasks().length, 0);
+  });
+});
+
+describe("toggleTaskDone", () => {
+  it("should toggle task done state", () => {
+    const taskManager = new TaskManager(() => 0);
+    const taskId = taskManager.addTask("test-task-1")!;
+    const task = taskManager.getTaskById(taskId);
+
+    assertEquals(task!.done, false);
+
+    taskManager.toggleTaskDone(taskId);
+    assertEquals(taskManager.getTaskById(taskId)!.done, true);
+
+    taskManager.toggleTaskDone(taskId);
+    assertEquals(taskManager.getTaskById(taskId)!.done, false);
+  });
+
+  it("should return false if task does not exist", () => {
+    const taskManager = new TaskManager(() => 0);
+    const result = taskManager.toggleTaskDone(1);
+
+    assertEquals(result, false);
   });
 });
 
@@ -159,8 +182,8 @@ describe("json", () => {
     const tasks = taskManager.json();
     assertEquals(tasks.length, 2);
     assertEquals(tasks, [
-      { task_Id: 0, description: "Test Task 1", done: false },
-      { task_Id: 1, description: "Test Task 2", done: false },
+      { task_id: 0, description: "Test Task 1", done: false },
+      { task_id: 1, description: "Test Task 2", done: false },
     ]);
   });
 });

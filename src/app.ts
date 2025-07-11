@@ -1,7 +1,7 @@
 import { Context, Hono, MiddlewareHandler, Next } from "hono";
 import { AppContext, AppVariables } from "./types.ts";
 import { handleAddTodo, serveTodos } from "./handlers/todo-handlers.ts";
-import { handleAddTask } from "./handlers/task-handlers.ts";
+import { handleAddTask, handleToggleTask } from "./handlers/task-handlers.ts";
 
 const setupAppContext =
   (appContext: AppContext): MiddlewareHandler =>
@@ -20,6 +20,8 @@ const createApp = (appContext: AppContext) => {
 
   app.post("/todos", handleAddTodo);
   app.post("/todos/:todoId/tasks", handleAddTask);
+
+  app.patch("/todos/:todoId/tasks/:taskId", handleToggleTask);
 
   return app;
 };
