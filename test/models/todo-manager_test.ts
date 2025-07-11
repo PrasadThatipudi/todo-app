@@ -242,6 +242,36 @@ describe("removeTodo", () => {
   });
 });
 
+describe("removeTask", () => {
+  it("should return null if todo does not exist", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const result = todoManager.removeTask(999, 0);
+    assertEquals(result, null);
+  });
+
+  it("should return null if task does not exist in the todo", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    const result = todoManager.removeTask(todoId, 0);
+
+    assertEquals(result, null);
+  });
+
+  it("should call removeTask on the todo and return removed task", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    const taskId = todoManager.addTask(todoId, "Test Task");
+    const todo = todoManager.getTodoById(todoId)!;
+    const removedTask = new Task(taskId, "Test Task");
+
+    const removeTaskStub = stub(todo, "removeTask", () => removedTask);
+
+    const result = todoManager.removeTask(todoId, taskId);
+    assertEquals(result, removedTask);
+    assertSpyCallArgs(removeTaskStub, 0, [taskId]);
+  });
+});
+
 describe("getTaskJson", () => {
   it("should return null if todoId is not exist", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);

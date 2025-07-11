@@ -38,6 +38,10 @@ class Todo {
     return this.taskManager.toggleTaskDone(taskId);
   }
 
+  removeTask(taskId: number): Task | null {
+    return this.taskManager.removeTask(taskId);
+  }
+
   json(): TodoJSON {
     return {
       todo_Id: this.id,

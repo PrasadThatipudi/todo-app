@@ -138,6 +138,18 @@ describe("toggleTask", () => {
   });
 });
 
+describe("removeTask", () => {
+  it("should call removeTask on the taskManager", () => {
+    const todo = Todo.init(0, "testing", () => 0);
+    const taskId = todo.addTask("Test Task");
+    const task = todo.getTaskById(taskId!);
+    const taskManagerStub = stub(todo.taskManager, "removeTask", () => task);
+    const removedTask = todo.removeTask(taskId!);
+    assertEquals(removedTask, task);
+    assertSpyCallArgs(taskManagerStub, 0, [taskId!]);
+  });
+});
+
 describe("json", () => {
   it("create a todo with title and id | tasks as empty array", () => {
     const todo = Todo.init(0, "testing", () => 0);

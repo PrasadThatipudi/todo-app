@@ -1,4 +1,5 @@
 import { TaskJSON, TodoJSON } from "../types.ts";
+import { Task } from "./task.ts";
 import { Todo } from "./todo.ts";
 
 class TodoManager {
@@ -64,6 +65,12 @@ class TodoManager {
     this.todos.delete(todoId);
 
     return targetTodo;
+  }
+
+  removeTask(todoId: number, taskId: number): Task | null {
+    if (!this.todos.has(todoId)) return null;
+
+    return this.getTodoById(todoId)!.removeTask(taskId);
   }
 
   getTodoById(id: number): Todo | null {
