@@ -4,6 +4,7 @@ import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 import { TaskJSON } from "../../src/types.ts";
+import { Task } from "../../src/models/task.ts";
 
 const testIdGenerator = () => () => 0;
 
@@ -262,5 +263,64 @@ describe("handleToggleTask", () => {
     });
     assertSpyCallArgs(toggleTaskStub, 0, [todoId, taskId]);
     assertSpyCallArgs(getTaskJsonStub, 0, [todoId, taskId]);
+  });
+});
+
+describe("handleDeleteTask", () => {
+  it("should respond with 404 if todo is not exist with the given todoId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+
+    const todoId = 0;
+    const taskId = 0;
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
+      method: "DELETE",
+    });
+
+    assertEquals(response.status, 404);
+    const jsonResponse = await response.json();
+
+    assertEquals(jsonResponse, { message: "Todo is not exist!" });
+  });
+
+  it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/0`, {
+      method: "DELETE",
+    });
+
+    assertEquals(response.status, 404);
+    const jsonResponse = await response.json();
+
+    assertEquals(jsonResponse, { message: "Task is not exist!" });
+  });
+
+  it("should delete task and return deleted task", async () => {
+    const todoManager = TodoManager.init(testIdGenerator(), testIdGenerator);
+    const todoId = todoManager.addTodo("Test Todo");
+    const taskId = todoManager.addTask(todoId, "Test Task");
+
+    const task = new Task(taskId, "Test Task");
+    const deleteTaskStub = stub(todoManager, "removeTask", () => task);
+
+    const appContext = { todoManager };
+    const app = createApp(appContext);
+
+    const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
+      method: "DELETE",
+    });
+
+    assertEquals(response.status, 200);
+    const jsonResponse = await response.json();
+    assertEquals(jsonResponse, task.json());
+    assertSpyCallArgs(deleteTaskStub, 0, [todoId, taskId]);
   });
 });
