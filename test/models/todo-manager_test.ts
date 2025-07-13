@@ -43,6 +43,13 @@ describe("hasTodo", () => {
 
     assert(todoManager.hasTodo("Existing Todo"));
   });
+
+  it("should return true if title is not exists | case sensitive", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    todoManager.addTodo("Test Todo");
+
+    assert(todoManager.hasTodo("test todo"));
+  });
 });
 
 describe("hasTask", () => {
@@ -159,6 +166,15 @@ describe("addTodo", () => {
     const todoManager = TodoManager.init(() => 0, idGenerator);
     todoManager.addTodo("Test Todo");
     const addedTodoId = todoManager.addTodo("Test Todo");
+
+    assertEquals(addedTodoId, -1);
+    assertEquals(todoManager.getAllTodos().length, 1);
+  });
+
+  it("should return -1 if title is already exists | case sensitive", () => {
+    const todoManager = TodoManager.init(() => 0, idGenerator);
+    todoManager.addTodo("Test Todo");
+    const addedTodoId = todoManager.addTodo("test todo");
 
     assertEquals(addedTodoId, -1);
     assertEquals(todoManager.getAllTodos().length, 1);

@@ -25,7 +25,11 @@ class TodoManager {
   hasTodo(lookUpKey: number | string): boolean {
     if (typeof lookUpKey === "number") return this.todos.has(Number(lookUpKey));
 
-    return this.todos.values().some((todo) => todo.title === lookUpKey);
+    return this.todos
+      .values()
+      .some(
+        (todo) => todo.title.toLowerCase() === lookUpKey.toLocaleLowerCase(),
+      );
   }
 
   hasTask(todoId: number, lookUpKey: number | string): boolean {

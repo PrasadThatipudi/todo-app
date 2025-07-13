@@ -24,13 +24,16 @@ class TaskManager {
     //lookUpKey -> description
     return this.tasks
       .values()
-      .some((task: Task) => task.description === lookUpKey);
+      .some(
+        (task: Task) =>
+          task.description.toLowerCase() === lookUpKey.toLowerCase(),
+      );
   }
 
   addTask(inputDescription: string): number | null {
     const description = inputDescription.trim();
 
-    if (!description) return null;
+    if (!description || this.hasTask(description)) return null;
 
     const taskId = this.idGenerator();
     this.tasks.set(taskId, new Task(taskId, description));

@@ -72,6 +72,14 @@ describe("hasTask", () => {
 
     assert(taskManager.hasTask("Test Task"));
   });
+
+  it("should return true if the description is existed but case is different", () => {
+    const taskManager = new TaskManager(() => 0);
+
+    taskManager.addTask("Test Task");
+
+    assert(taskManager.hasTask("test task"));
+  });
 });
 
 describe("addTask", () => {
@@ -118,6 +126,32 @@ describe("addTask", () => {
 
     assertEquals(addedTask, null);
     assertEquals(taskManager.getAllTasks().length, 0);
+  });
+
+  it("should return null if task description is only whitespace", () => {
+    const taskManager = new TaskManager(() => 0);
+    const addedTask = taskManager.addTask("   ");
+
+    assertEquals(addedTask, null);
+    assertEquals(taskManager.getAllTasks().length, 0);
+  });
+
+  it("should return null if task description already exists", () => {
+    const taskManager = new TaskManager(() => 0);
+    taskManager.addTask("test-task-1");
+    const addedTask = taskManager.addTask("test-task-1");
+
+    assertEquals(addedTask, null);
+    assertEquals(taskManager.getAllTasks().length, 1);
+  });
+
+  it("should return null if task description already exists | case sensitive", () => {
+    const taskManager = new TaskManager(() => 0);
+    taskManager.addTask("test-task-1");
+    const addedTask = taskManager.addTask("Test-Task-1");
+
+    assertEquals(addedTask, null);
+    assertEquals(taskManager.getAllTasks().length, 1);
   });
 });
 
