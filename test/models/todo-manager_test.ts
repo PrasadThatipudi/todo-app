@@ -1,353 +1,310 @@
-import { describe, it } from "@std/testing/bdd";
-import { assertSpyCallArgs, stub } from "@std/testing/mock";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assert } from "@std/assert/assert";
-import { assertEquals } from "@std/assert/equals";
-import { TaskJSON, TodoJSON } from "../../src/types.ts";
-import { Task } from "../../src/models/task.ts";
-import { assertFalse } from "@std/assert/false";
+import { Todo } from "../../src/types.ts";
+import { Collection, MongoClient } from "mongodb";
+import { assertEquals, assertFalse, assertRejects } from "@std/assert";
+import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
+let client: MongoClient;
+let todoCollection: Collection<Todo>;
+const userId = 0;
+
+beforeEach(async () => {
+  client = new MongoClient("mongodb://localhost:27017");
+  await client.connect();
+  todoCollection = client.db("test").collection("todos");
+  await todoCollection.deleteMany({});
+});
+
+afterEach(async () => {
+  await client.close();
+});
+
+const testIdGenerator = () => 0;
 const idGenerator = (start: number) => () => start++;
+
+const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
+  user_id,
+  title,
+  _id,
+});
 
 describe("init", () => {
   it("should initialize the TodoManager", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
 
     assert(todoManager instanceof TodoManager);
   });
 });
 
-describe("hasTodo", () => {
-  it("should return false if the todo is not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    assertFalse(todoManager.hasTodo(0));
-  });
-
-  it("should return true if the todo is exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test");
-
-    assert(todoManager.hasTodo(todoId));
-  });
-
-  it("should return false if title is not exists", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    assertFalse(todoManager.hasTodo("Non-existent Todo"));
-  });
-
-  it("should return true if title is exists", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    todoManager.addTodo("Existing Todo");
-
-    assert(todoManager.hasTodo("Existing Todo"));
-  });
-
-  it("should return true if title is not exists | case sensitive", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    todoManager.addTodo("Test Todo");
-
-    assert(todoManager.hasTodo("test todo"));
-  });
-});
-
-describe("hasTask", () => {
-  it("should return false if the task is not exist in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-
-    assertFalse(todoManager.hasTask(todoId, 0));
-  });
-
-  it("should return true if the task is exist in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    todoManager.addTask(todoId, "Test Task");
-
-    assert(todoManager.hasTask(todoId, 0));
-  });
-
-  it("should return false if the todo does not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    assertFalse(todoManager.hasTask(999, 0));
-  });
-
-  it("should return false if the task description does not exist in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-
-    assertFalse(todoManager.hasTask(todoId, "Non-existent Task"));
-  });
-
-  it("should return true if the task description exists in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    todoManager.addTask(todoId, "Existing Task");
-
-    assert(todoManager.hasTask(todoId, "Existing Task"));
-  });
-});
-
 describe("getAllTodos", () => {
-  it("should return an empty array when no todos are present", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todos = todoManager.getAllTodos();
+  it("should return an empty array when no todos are present", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
 
-    assert(Array.isArray(todos));
+    const userId = 1;
+    const todos: Todo[] = await todoManager.getAllTodos(userId);
+
     assert(todos.length === 0);
+  });
+
+  it("should return all todos for a user", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    await todoCollection.insertMany([
+      createTodo(1, "Todo 1", 1),
+      createTodo(2, "Todo 2", 1),
+      createTodo(3, "Todo 3", 2),
+    ]);
+
+    const todos = await todoManager.getAllTodos(1);
+
+    assertEquals(todos.length, 2);
+    assertEquals(todos[0].title, "Todo 1");
+    assertEquals(todos[1].title, "Todo 2");
   });
 });
 
 describe("getTodoById", () => {
-  it("should return null when todo does not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todo = todoManager.getTodoById(999);
+  it("should return null when todo does not exist", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const todo = await todoManager.getTodoById(userId, 999);
 
     assertEquals(todo, null);
   });
 
-  it("should return the correct todo when it exists", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodoId = todoManager.addTodo("Test Todo");
-    const todo = todoManager.getTodoById(addedTodoId);
+  it("should return the correct todo when it exists", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const addedTodoId = await todoManager.addTodo(userId, "Test Todo");
+    const todo = await todoManager.getTodoById(userId, addedTodoId);
 
     assert(todo !== null);
+  });
+
+  it("should return the correct todo with the specified userId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    await todoCollection.insertOne(createTodo(1, "Test Todo", 1));
+    const todo = await todoManager.getTodoById(1, 1);
+
+    assert(todo !== null);
+    assertEquals(todo?.title, "Test Todo");
+  });
+});
+
+describe("hasTodo", () => {
+  it("should return false if the todo is not exist", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+
+    assertFalse(await todoManager.hasTodo(userId, 0));
+  });
+
+  it("should return true if the todo is exists", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const todoId = await todoManager.addTodo(userId, "Test");
+
+    assert(await todoManager.hasTodo(userId, todoId));
+  });
+
+  it("should return true if the todo is exists for every specific user", async () => {
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const countStub = stub(
+      todoCollection,
+      "countDocuments",
+      () => Promise.resolve(1),
+    );
+    const todoId1 = 0;
+    const todoId2 = 2;
+    await todoCollection.insertMany([
+      createTodo(todoId1, "Test1", 0),
+      createTodo(todoId2, "Test2", 1),
+    ]);
+
+    assert(await todoManager.hasTodo(0, todoId1));
+
+    assert(await todoManager.hasTodo(1, todoId2));
+    assertSpyCallArgs(countStub, 0, [{ _id: todoId1, user_id: 0 }]);
+    assertSpyCallArgs(countStub, 1, [{ _id: todoId2, user_id: 1 }]);
+  });
+
+  it("should return false if title is not exists", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+
+    assertFalse(await todoManager.hasTodo(userId, "Non-existent Todo"));
+  });
+
+  it("should return true if title is exists", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+
+    await todoCollection.insertOne(createTodo(0, "Existing Todo", userId));
+
+    assert(await todoManager.hasTodo(userId, "Existing Todo"));
   });
 });
 
 describe("addTodo", () => {
-  it("should return -1 if title is empty string", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodo = todoManager.addTodo("");
-
-    assertEquals(todoManager.getAllTodos().length, 0);
-    assertEquals(addedTodo, -1);
+  it("should throw an error if title is empty", () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    assertRejects(
+      async () => {
+        await todoManager.addTodo(userId, "");
+      },
+      Error,
+      "Title cannot be empty",
+    );
   });
 
-  it("should return -1 if title is empty string after trim", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodo = todoManager.addTodo("");
-
-    assertEquals(todoManager.getAllTodos().length, 0);
-    assertEquals(addedTodo, -1);
+  it("should throw an error if title is whitespace", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    assertRejects(
+      async () => {
+        await todoManager.addTodo(userId, "  ");
+      },
+      Error,
+      "Title cannot be empty",
+    );
+    assertEquals((await todoManager.getAllTodos(userId)).length, 0);
   });
 
-  it("should add trimmed title", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodo = todoManager.addTodo("   Test Todo   ");
+  it("should throw an error if title is exists", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    await todoManager.addTodo(userId, "Test Todo");
 
-    assertEquals(addedTodo, 0);
-    assertEquals(todoManager.getTodoById(addedTodo)?.title, "Test Todo");
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(true),
+    );
+
+    await assertRejects(
+      async () => {
+        await todoManager.addTodo(userId, "Test Todo");
+      },
+      Error,
+      "Todo with this title already exists",
+    );
+
+    assertSpyCallArgs(hasTodoStub, 0, [userId, "Test Todo"]);
+    assertEquals((await todoManager.getAllTodos(userId)).length, 1);
   });
 
-  it("should return added todo when title is valid", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodoId = todoManager.addTodo("Test Todo");
+  it("should accept title which is already exists for another user", async () => {
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(false),
+    );
 
-    const allTodos = todoManager.getAllTodos();
-    assertEquals(allTodos.length, 1);
+    const todoIdOfUser1 = await todoManager.addTodo(1, "Test Todo");
+    const todoIdOfUser2 = await todoManager.addTodo(2, "Test Todo");
+
+    const allTodosOfUser1 = await todoManager.getAllTodos(1);
+    const allTodosOfUser2 = await todoManager.getAllTodos(2);
+    assertSpyCallArgs(hasTodoStub, 0, [1, "Test Todo"]);
+    assertSpyCallArgs(hasTodoStub, 1, [2, "Test Todo"]);
+    assertEquals(todoIdOfUser2, 1);
+    assertEquals(todoIdOfUser1, 0);
+    assertEquals(allTodosOfUser1.length, 1);
+    assertEquals(allTodosOfUser2.length, 1);
+    assertEquals(allTodosOfUser1[0], createTodo(0, "Test Todo", 1));
+    assertEquals(allTodosOfUser2[0], createTodo(1, "Test Todo", 2));
+  });
+
+  it("should return added todo id when title is valid", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const addedTodoId = await todoManager.addTodo(userId, "Test Todo");
+
+    const allTodos = await todoManager.getAllTodos(userId);
     assertEquals(addedTodoId, 0);
+    assertEquals(allTodos.length, 1);
   });
 
-  it("should able to add multiple todos", () => {
-    const todoManager = TodoManager.init(idGenerator(0), idGenerator);
-    const addedTodoId1 = todoManager.addTodo("Test Todo 1");
-    const addedTodoId2 = todoManager.addTodo("Test Todo 2");
+  it("should add trimmed title", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const todoId = await todoManager.addTodo(userId, "   Test Todo   ");
 
-    const allTodos = todoManager.getAllTodos();
+    assertEquals(todoId, 0);
+    assertEquals(
+      (await todoManager.getTodoById(userId, todoId))?.title,
+      "Test Todo",
+    );
+  });
+
+  it("should able to add multiple todos", async () => {
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const addedTodoId1 = await todoManager.addTodo(userId, "Test Todo 1");
+    const addedTodoId2 = await todoManager.addTodo(userId, "Test Todo 2");
+
+    const allTodos = await todoManager.getAllTodos(userId);
     assertEquals(allTodos.length, 2);
     assertEquals(addedTodoId1, 0);
     assertEquals(addedTodoId2, 1);
   });
-
-  it("should return -1 if title is already exists", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    todoManager.addTodo("Test Todo");
-    const addedTodoId = todoManager.addTodo("Test Todo");
-
-    assertEquals(addedTodoId, -1);
-    assertEquals(todoManager.getAllTodos().length, 1);
-  });
-
-  it("should return -1 if title is already exists | case sensitive", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    todoManager.addTodo("Test Todo");
-    const addedTodoId = todoManager.addTodo("test todo");
-
-    assertEquals(addedTodoId, -1);
-    assertEquals(todoManager.getAllTodos().length, 1);
-  });
-});
-
-describe("addTask", () => {
-  it("should return -1 when task description is invalid", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    const todoId = todoManager.addTodo("Test Todo");
-    const taskId = todoManager.addTask(todoId, "");
-
-    assertEquals(taskId, -1);
-  });
-
-  it("should add trimmed task description", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    const todoId = todoManager.addTodo("Test Todo");
-    const taskId = todoManager.addTask(todoId, "   Test Task   ");
-
-    const task = todoManager.getTodoById(todoId)?.getTaskById(taskId);
-
-    assertEquals(task?.description, "Test Task");
-  });
-
-  it("should return -1 when todo does not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const taskId = todoManager.addTask(999, "Test Task");
-
-    assertEquals(taskId, -1);
-  });
-
-  it("should return task id when task description is valid", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-
-    stub(todoManager.getTodoById(todoId)!, "addTask", () => 0);
-
-    const taskId = todoManager.addTask(todoId, "Test Task");
-    assertEquals(taskId, 0);
-  });
-});
-
-describe("toggleTask", () => {
-  it("should return false if todo does not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const result = todoManager.toggleTask(999, 0);
-    assertFalse(result);
-  });
-
-  it("should call toggleTask on the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    const taskId = todoManager.addTask(todoId, "Test Task");
-    const todo = todoManager.getTodoById(todoId)!;
-    const toggleTaskStub = stub(todo, "toggleTask", () => true);
-
-    const result = todoManager.toggleTask(todoId, taskId);
-    assert(result);
-    assertSpyCallArgs(toggleTaskStub, 0, [taskId]);
-  });
 });
 
 describe("removeTodo", () => {
-  it("should remove a todo by id and return removed todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const addedTodoId = todoManager.addTodo("Test Todo");
+  it("should throw an error if todo does not exist", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(false),
+    );
 
-    const removedTodo = todoManager.removeTodo(addedTodoId)!;
-
-    assertEquals(removedTodo.id, addedTodoId);
-  });
-
-  it("should return null when todo id is not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const result = todoManager.removeTodo(999);
-
-    assertEquals(result, null);
-  });
-});
-
-describe("removeTask", () => {
-  it("should return null if todo does not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const result = todoManager.removeTask(999, 0);
-    assertEquals(result, null);
-  });
-
-  it("should return null if task does not exist in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    const result = todoManager.removeTask(todoId, 0);
-
-    assertEquals(result, null);
-  });
-
-  it("should call removeTask on the todo and return removed task", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    const taskId = todoManager.addTask(todoId, "Test Task");
-    const todo = todoManager.getTodoById(todoId)!;
-    const removedTask = new Task(taskId, "Test Task");
-
-    const removeTaskStub = stub(todo, "removeTask", () => removedTask);
-
-    const result = todoManager.removeTask(todoId, taskId);
-    assertEquals(result, removedTask);
-    assertSpyCallArgs(removeTaskStub, 0, [taskId]);
-  });
-});
-
-describe("getTaskJson", () => {
-  it("should return null if todoId is not exist", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    assertEquals(todoManager.getTaskJson(0, 0), null);
-  });
-
-  it("should return null if taskId is not exist in the todo", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-
-    todoManager.addTodo("Test Todo");
-
-    assertEquals(todoManager.getTaskJson(0, 0), null);
-  });
-
-  it("should return task in json", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todoId = todoManager.addTodo("Test Todo");
-    const todo = todoManager.getTodoById(todoId)!;
-
-    const expectedTaskJson: TaskJSON = {
-      task_id: 0,
-      description: "Test Task",
-      done: false,
-    };
-
-    const task = new Task(0, "Test Task");
-    const getTaskStub = stub(todo, "getTaskById", () => task);
-    const jsonTaskStub = stub(task, "json", () => expectedTaskJson);
-
-    assertEquals(todoManager.getTaskJson(0, 0), task.json());
-    assertSpyCallArgs(getTaskStub, 0, [0]);
-    assertSpyCallArgs(jsonTaskStub, 1, []);
-  });
-});
-
-describe("json", () => {
-  it("should return an empty array when no todos are present", () => {
-    const todoManager = TodoManager.init(() => 0, idGenerator);
-    const todos: TodoJSON[] = todoManager.json();
-
-    assertEquals(todos, []);
-  });
-
-  it("should return all todos in json format", () => {
-    const todoManager = TodoManager.init(idGenerator(0), idGenerator);
-
-    todoManager.addTodo("Test Todo 1");
-    todoManager.addTask(0, "Test Task 1");
-    todoManager.addTodo("Test Todo 2");
-
-    const todos: TodoJSON[] = todoManager.json();
-    assertEquals(todos.length, 2);
-    assertEquals(todos, [
-      {
-        todo_Id: 0,
-        title: "Test Todo 1",
-        tasks: [{ task_id: 0, description: "Test Task 1", done: false }],
+    await assertRejects(
+      async () => {
+        await todoManager.removeTodo(userId, 999);
       },
-      { todo_Id: 1, title: "Test Todo 2", tasks: [] },
-    ]);
+      Error,
+      "Todo not found",
+    );
+
+    assertSpyCallArgs(hasTodoStub, 0, [userId, 999]);
+  });
+
+  it("should remove the todo if it exists | returns true", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const addedTodoId = await todoManager.addTodo(userId, "Test Todo");
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(true),
+    );
+
+    const result = await todoManager.removeTodo(userId, addedTodoId);
+
+    assert(result);
+    assertSpyCallArgs(hasTodoStub, 0, [userId, addedTodoId]);
+    assertEquals((await todoManager.getAllTodos(userId)).length, 0);
+  });
+
+  it("should remove the todo with the specified userId", async () => {
+    const todoManager = TodoManager.init(testIdGenerator, todoCollection);
+    const addedTodoId = await todoManager.addTodo(1, "Test Todo");
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(true),
+    );
+
+    const result = await todoManager.removeTodo(1, addedTodoId);
+
+    assertSpyCallArgs(hasTodoStub, 0, [1, addedTodoId]);
+    assert(result);
+    assertEquals((await todoManager.getAllTodos(1)).length, 0);
+  });
+
+  it("should able to remove multiple todos", async () => {
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const userId = 0;
+    const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
+    const todoId2 = await todoManager.addTodo(userId, "Test Todo 2");
+
+    assertEquals((await todoManager.getAllTodos(userId)).length, 2);
+
+    assert(await todoManager.removeTodo(userId, todoId1));
+    assertEquals((await todoManager.getAllTodos(userId)).length, 1);
+
+    assert(await todoManager.removeTodo(userId, todoId2));
+    assertEquals((await todoManager.getAllTodos(userId)).length, 0);
   });
 });

@@ -1,101 +1,68 @@
-import { TaskJSON, TodoJSON } from "../types.ts";
-import { Task } from "./task.ts";
-import { Todo } from "./todo.ts";
-
+import { Collection } from "mongodb";
+import { Todo } from "../types.ts";
 class TodoManager {
-  todos: Map<number, Todo> = new Map();
-  taskIdGenerator: (start: number) => () => number;
-  nextTodoId: () => number;
-
-  private constructor(
-    nextTodoId: () => number,
-    taskIdGenerator: (start: number) => () => number,
-  ) {
-    this.nextTodoId = nextTodoId;
-    this.taskIdGenerator = taskIdGenerator;
-  }
+  constructor(
+    private readonly todoIdGenerator: () => number,
+    private readonly todoCollection: Collection<Todo>,
+  ) {}
 
   static init(
-    nextTodoId: () => number,
-    taskIdGenerator: (start: number) => () => number,
-  ) {
-    return new TodoManager(nextTodoId, taskIdGenerator);
+    todoIdGenerator: () => number,
+    todoCollection: Collection<Todo>,
+  ): TodoManager {
+    return new TodoManager(todoIdGenerator, todoCollection);
   }
 
-  hasTodo(lookUpKey: number | string): boolean {
-    if (typeof lookUpKey === "number") return this.todos.has(Number(lookUpKey));
-
-    return this.todos
-      .values()
-      .some(
-        (todo) => todo.title.toLowerCase() === lookUpKey.toLocaleLowerCase(),
-      );
+  async getAllTodos(userId: number): Promise<Todo[]> {
+    return await this.todoCollection.find({ user_id: userId }).toArray();
   }
 
-  hasTask(todoId: number, lookUpKey: number | string): boolean {
-    return this.hasTodo(todoId) && this.getTodoById(todoId)!.hasTask(lookUpKey);
+  async getTodoById(userId: number, todoId: number): Promise<Todo | null> {
+    return await this.todoCollection.findOne({
+      _id: todoId,
+      user_id: userId,
+    });
   }
 
-  addTodo(inputTitle: string): number {
-    const title = inputTitle.trim();
+  async hasTodo(userId: number, lookUp: number | string): Promise<boolean> {
+    const lookUpKey = typeof lookUp === "number" ? "_id" : "title";
 
-    if (title === "") return -1;
-    if (this.hasTodo(title)) return -1;
-
-    const todo = Todo.init(this.nextTodoId(), title, this.taskIdGenerator(0));
-    this.todos.set(todo.id, todo);
-
-    return todo.id;
-  }
-
-  addTask(todoId: number, taskDescription: string): number {
-    const todo = this.getTodoById(todoId);
-
-    if (!todo) return -1;
-
-    return todo.addTask(taskDescription) ?? -1;
-  }
-
-  toggleTask(todoId: number, taskId: number): boolean {
     return (
-      this.todos.has(todoId) && this.getTodoById(todoId)!.toggleTask(taskId)
+      (await this.todoCollection.countDocuments({
+        [lookUpKey]: lookUp,
+        user_id: userId,
+      })) === 1
     );
   }
 
-  removeTodo(todoId: number): Todo | null {
-    if (!this.todos.has(todoId)) return null;
+  async addTodo(userId: number, title: string): Promise<number> {
+    if (!title || !title.trim()) throw new Error("Title cannot be empty");
+    if (await this.hasTodo(userId, title)) {
+      throw new Error("Todo with this title already exists");
+    }
 
-    const targetTodo = this.getTodoById(todoId);
-    this.todos.delete(todoId);
+    const insertionResult = await this.todoCollection.insertOne({
+      _id: this.todoIdGenerator(),
+      user_id: userId,
+      title: "Test Todo",
+    });
 
-    return targetTodo;
+    return insertionResult.insertedId as number;
   }
 
-  removeTask(todoId: number, taskId: number): Task | null {
-    if (!this.todos.has(todoId)) return null;
+  async removeTodo(userId: number, todoId: number): Promise<boolean> {
+    if (!(await this.hasTodo(userId, todoId))) {
+      throw new Error("Todo not found");
+    }
 
-    return this.getTodoById(todoId)!.removeTask(taskId);
-  }
-
-  getTodoById(id: number): Todo | null {
-    return this.todos.get(id) || null;
-  }
-
-  getTaskJson(todoId: number, taskId: number): TaskJSON | null {
-    if (!this.todos.has(todoId)) return null;
-
-    const targetTodo = this.getTodoById(todoId);
-    const targetTask = targetTodo?.getTaskById(taskId);
-
-    return targetTask?.json() || null;
-  }
-
-  getAllTodos(): Todo[] {
-    return Array.from(this.todos.values());
-  }
-
-  json(): TodoJSON[] {
-    return this.getAllTodos().map((todo) => todo.json());
+    return (
+      (
+        await this.todoCollection.deleteOne({
+          _id: todoId,
+          user_id: userId,
+        })
+      ).deletedCount === 1
+    );
   }
 }
 

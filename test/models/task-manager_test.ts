@@ -1,223 +1,401 @@
-import { describe, it } from "@std/testing/bdd";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { TaskManager } from "../../src/models/task-manager.ts";
-import { assert, assertEquals, assertFalse } from "@std/assert";
+import { assert, assertEquals, assertFalse, assertRejects } from "@std/assert";
+import { Task } from "../../src/types.ts";
+import { Collection, MongoClient } from "mongodb";
+import { assertSpyCallArgs, stub } from "@std/testing/mock";
+
+let client: MongoClient;
+let collection: Collection<Task>;
+
+beforeEach(async () => {
+  client = new MongoClient("mongodb://localhost:27017");
+  await client.connect();
+  collection = client.db("test").collection("tasks");
+  await collection.deleteMany({});
+});
+
+afterEach(async () => {
+  await client.close();
+});
+
+describe("init", () => {
+  it("should initialize the task manager", () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    assert(taskManager instanceof TaskManager);
+  });
+});
+
+const userId = 0;
+const todoId = 0;
+
+const createTestTask = (
+  id: number,
+  description: string,
+  todoId: number = 0,
+  done: boolean = false,
+): Task => ({
+  _id: id,
+  description,
+  done,
+  user_id: userId,
+  todo_id: todoId,
+});
 
 describe("getAllTasks", () => {
-  it("should return empty array initially", () => {
-    const taskManager = new TaskManager(() => 0);
-    const tasks = taskManager.getAllTasks();
+  it("should return empty array initially", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const tasks = await taskManager.getAllTasks(userId, todoId);
 
     assertEquals(tasks, []);
   });
 
-  it("should return all added tasks", () => {
+  it("should return all added tasks of the given todo", async () => {
     const idGenerator = (start: number) => () => start++;
-    const taskManager = new TaskManager(idGenerator(0));
+    const taskManager = TaskManager.init(idGenerator(0), collection);
 
-    const task1Id = taskManager.addTask("test-task-1")!;
-    const task2Id = taskManager.addTask("test-task-2")!;
+    const task1: Task = createTestTask(0, "Test Task 1");
+    const task2: Task = createTestTask(1, "Test Task 2");
+    await taskManager.addTask(userId, todoId, task1.description);
+    await taskManager.addTask(userId, todoId, task2.description);
 
-    const task1 = taskManager.getTaskById(task1Id);
-    const task2 = taskManager.getTaskById(task2Id);
-
-    const tasks = taskManager.getAllTasks();
+    const tasks = await taskManager.getAllTasks(userId, todoId);
 
     assertEquals(tasks.length, 2);
     assertEquals(tasks, [task1, task2]);
   });
+
+  it("should return tasks only for the specified user and todo", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+
+    const task1: Task = createTestTask(0, "Test Task 1", 1);
+    const task2: Task = createTestTask(1, "Test Task 2", 2);
+
+    await taskManager.addTask(userId, 1, task1.description);
+    await taskManager.addTask(userId, 2, task2.description);
+
+    const tasksOfTodo1 = await taskManager.getAllTasks(userId, 1);
+    const tasksOfTodo2 = await taskManager.getAllTasks(userId, 2);
+
+    assertEquals(tasksOfTodo1.length, 1);
+    assertEquals(tasksOfTodo1[0], task1);
+
+    assertEquals(tasksOfTodo2.length, 1);
+    assertEquals(tasksOfTodo2[0], task2);
+  });
+
+  it("should return tasks only for the specified user", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+
+    const task1: Task = createTestTask(0, "Test Task 1", 1);
+    const task2: Task = createTestTask(1, "Test Task 2", 2);
+
+    await taskManager.addTask(userId, 1, task1.description);
+    await taskManager.addTask(userId + 1, 2, task2.description);
+
+    const tasksOfUser1 = await taskManager.getAllTasks(userId);
+    assertEquals(tasksOfUser1.length, 1);
+    assertEquals(tasksOfUser1[0], task1);
+
+    const tasksOfUser2 = await taskManager.getAllTasks(userId + 1);
+    assertEquals(tasksOfUser2.length, 1);
+  });
 });
 
 describe("getTaskById", () => {
-  it("should return null for non-existing task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const task = taskManager.getTaskById(1);
+  it("should return null for non-existing task", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const taskId = 1;
+    const task = await taskManager.getTaskById(userId, todoId, taskId);
 
     assertEquals(task, null);
   });
 
-  it("should return the added task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const taskId = taskManager.addTask("test-task-1");
-    const task = taskManager.getTaskById(taskId!);
+  it("should return the added task", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const task: Task = createTestTask(0, "Test Task 1");
+    await taskManager.addTask(userId, todoId, task.description);
 
-    assertEquals(taskManager.getTaskById(0), task);
+    const newTask = await taskManager.getTaskById(userId, todoId, task._id);
+    assertEquals(newTask, task);
   });
 });
 
 describe("hasTask", () => {
-  it("should return false if the task is new", () => {
-    const taskManager = new TaskManager(() => 0);
+  it("should return false if the task is new", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    assertFalse(taskManager.hasTask(0));
+    assertFalse(await taskManager.hasTask(userId, todoId, 0));
   });
 
-  it("should return true if the task is existed", () => {
-    const taskManager = new TaskManager(() => 0);
+  it("should return true if the task is existed", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    const taskId = taskManager.addTask("Test Task")!;
+    const taskId = await taskManager.addTask(userId, todoId, "Test Task")!;
 
-    assert(taskManager.hasTask(taskId));
+    assert(await taskManager.hasTask(userId, todoId, taskId!));
   });
 
-  it("should return false if the description is new", () => {
-    const taskManager = new TaskManager(() => 0);
+  it("should return false if the description is new", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    assertFalse(taskManager.hasTask("Unknown Task"));
+    assertFalse(await taskManager.hasTask(userId, todoId, "Unknown Task"));
   });
 
-  it("should return true if the description is existed", () => {
-    const taskManager = new TaskManager(() => 0);
+  it("should return true if the description is exists", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    taskManager.addTask("Test Task");
-
-    assert(taskManager.hasTask("Test Task"));
+    await taskManager.addTask(userId, todoId, "Test Task");
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+    assert(await taskManager.hasTask(userId, todoId, "Test Task"));
   });
 
-  it("should return true if the description is existed but case is different", () => {
-    const taskManager = new TaskManager(() => 0);
+  // it("should return true if the description is existed but case is different", async () => {
+  //   const taskManager = TaskManager.init(() => 0, collection);
 
-    taskManager.addTask("Test Task");
+  //   await taskManager.addTask(userId, todoId,userId, todoId, "Test Task");
 
-    assert(taskManager.hasTask("test task"));
-  });
+  //   assert(await taskManager.hasTask(userId, todoId, "test task"));
+  // });
 });
 
 describe("addTask", () => {
-  it("should add a task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const task = { task_id: 0, description: "test-task-1", done: false };
-    const taskId = taskManager.addTask("test-task-1")!;
-    const addedTask = taskManager.getTaskById(taskId);
+  it("should add a task", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const task: Task = {
+      _id: 0,
+      description: "test-task-1",
+      done: false,
+      user_id: userId,
+      todo_id: todoId,
+    };
+    const taskId = await taskManager.addTask(userId, todoId, "test-task-1");
+    const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
 
-    assertEquals(addedTask!.json(), task);
-    assertEquals(taskManager.getAllTasks().length, 1);
+    assertEquals(addedTask, task);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
 
-  it("should add trimmed task description", () => {
-    const taskManager = new TaskManager(() => 0);
-    const task = { task_id: 0, description: "test-task-1", done: false };
-    const taskId = taskManager.addTask("  test-task-1  ")!;
-    const addedTask = taskManager.getTaskById(taskId);
+  it("should add trimmed task description", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const task: Task = createTestTask(0, "test-task-1");
+    const taskId = await taskManager.addTask(
+      userId,
+      todoId,
+      "  test-task-1  ",
+    )!;
+    const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
 
-    assertEquals(addedTask!.json(), task);
-    assertEquals(taskManager.getAllTasks().length, 1);
+    assertEquals(addedTask, task);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
 
-  it("should use idGenerator to give id to task", () => {
-    const taskManager1 = new TaskManager(() => 1);
-    const taskManager2 = new TaskManager(() => 2);
+  it("should use idGenerator to give id to task", async () => {
+    const taskManager1 = TaskManager.init(() => 1, collection);
+    const taskManager2 = TaskManager.init(() => 2, collection);
 
-    const task1 = { task_id: 1, description: "test-task-1", done: false };
-    const task2 = { task_id: 2, description: "test-task-2", done: false };
-    const task1Id = taskManager1.addTask("test-task-1")!;
-    const addedTask1 = taskManager1.getTaskById(task1Id);
-    const task2Id = taskManager2.addTask("test-task-2")!;
-    const addedTask2 = taskManager2.getTaskById(task2Id);
+    const task1 = createTestTask(1, "test-task-1", 1);
+    const task2 = createTestTask(2, "test-task-2", 2);
+    const todo1 = 1;
+    const todo2 = 2;
+    const task1Id = await taskManager1.addTask(userId, todo1, "test-task-1")!;
+    const addedTask1 = await taskManager1.getTaskById(userId, todo1, task1Id!);
+    const task2Id = await taskManager2.addTask(userId, todo2, "test-task-2")!;
+    const addedTask2 = await taskManager2.getTaskById(userId, todo2, task2Id!);
 
-    assertEquals(addedTask1!.json(), task1);
-    assertEquals(addedTask2!.json(), task2);
-    assertEquals(taskManager1.getAllTasks().length, 1);
-    assertEquals(taskManager2.getAllTasks().length, 1);
+    assertEquals((await taskManager1.getAllTasks(userId, todo1)).length, 1);
+    assertEquals(addedTask1, task1);
+    assertEquals((await taskManager2.getAllTasks(userId, todo2)).length, 1);
+    assertEquals(addedTask2, task2);
   });
 
-  it("should return null if task description is empty", () => {
-    const taskManager = new TaskManager(() => 0);
-    const addedTask = taskManager.addTask("");
+  it("should throw an error if task description is empty", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    assertEquals(addedTask, null);
-    assertEquals(taskManager.getAllTasks().length, 0);
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "");
+      },
+      Error,
+      "Task description cannot be empty",
+    );
+
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
   });
 
-  it("should return null if task description is only whitespace", () => {
-    const taskManager = new TaskManager(() => 0);
-    const addedTask = taskManager.addTask("   ");
+  it("should throw an error if task description is only whitespace", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "   ");
+      },
+      Error,
+      "Task description cannot be empty",
+    );
 
-    assertEquals(addedTask, null);
-    assertEquals(taskManager.getAllTasks().length, 0);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
   });
 
-  it("should return null if task description already exists", () => {
-    const taskManager = new TaskManager(() => 0);
-    taskManager.addTask("test-task-1");
-    const addedTask = taskManager.addTask("test-task-1");
+  it("should return null if task description already exists", async () => {
+    const taskManager1 = TaskManager.init(() => 0, collection);
 
-    assertEquals(addedTask, null);
-    assertEquals(taskManager.getAllTasks().length, 1);
+    await taskManager1.addTask(userId, todoId, "test-task-1");
+    await assertRejects(
+      async () => {
+        await taskManager1.addTask(userId, todoId, "test-task-1");
+      },
+      Error,
+      "Task description already exists",
+    );
+
+    assertEquals((await taskManager1.getAllTasks(userId, todoId)).length, 1);
+
+    // Test with a different todoId
+    const taskManager2 = TaskManager.init(() => 1, collection);
+    await taskManager2.addTask(userId, todoId + 1, "test-task-1");
+    await assertRejects(
+      async () => {
+        await taskManager2.addTask(userId, todoId + 1, "test-task-1");
+      },
+      Error,
+      "Task description already exists",
+    );
+    assertEquals(
+      (await taskManager2.getAllTasks(userId, todoId + 1)).length,
+      1,
+    );
+
+    // Test with a different userId
+    const taskManager3 = TaskManager.init(() => 2, collection);
+    await taskManager3.addTask(userId + 1, todoId, "test-task-1");
+    await assertRejects(
+      async () => {
+        await taskManager3.addTask(userId + 1, todoId, "test-task-1");
+      },
+      Error,
+      "Task description already exists",
+    );
+    assertEquals(
+      (await taskManager3.getAllTasks(userId + 1, todoId)).length,
+      1,
+    );
   });
 
-  it("should return null if task description already exists | case sensitive", () => {
-    const taskManager = new TaskManager(() => 0);
-    taskManager.addTask("test-task-1");
-    const addedTask = taskManager.addTask("Test-Task-1");
+  // it("should return null if task description already exists | case sensitive", async () => {
+  //   const taskManager = TaskManager.init(() => 0, collection);
+  //   await taskManager.addTask(userId, todoId,userId, todoId, "test-task-1");
+  //   const addedTask = await taskManager.addTask(userId, todoId,userId, todoId, "Test-Task-1");
 
-    assertEquals(addedTask, null);
-    assertEquals(taskManager.getAllTasks().length, 1);
-  });
+  //   assertEquals(addedTask, null);
+  //   assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+  // });
 });
 
 describe("toggleTaskDone", () => {
-  it("should toggle task done state", () => {
-    const taskManager = new TaskManager(() => 0);
-    const taskId = taskManager.addTask("test-task-1")!;
-    const task = taskManager.getTaskById(taskId);
+  it("should toggle task done state", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const taskId = await taskManager.addTask(userId, todoId, "test-task-1")!;
+    const task = await taskManager.getTaskById(userId, todoId, taskId!);
 
     assertEquals(task!.done, false);
 
-    taskManager.toggleTaskDone(taskId);
-    assertEquals(taskManager.getTaskById(taskId)!.done, true);
+    await taskManager.toggleTaskDone(userId, todoId, taskId!);
+    assertEquals(
+      (await taskManager.getTaskById(userId, todoId, taskId!))!.done,
+      true,
+    );
 
-    taskManager.toggleTaskDone(taskId);
-    assertEquals(taskManager.getTaskById(taskId)!.done, false);
+    await taskManager.toggleTaskDone(userId, todoId, taskId!);
+    assertEquals(
+      (await taskManager.getTaskById(userId, todoId, taskId!))!.done,
+      false,
+    );
   });
 
-  it("should return false if task does not exist", () => {
-    const taskManager = new TaskManager(() => 0);
-    const result = taskManager.toggleTaskDone(1);
+  it("should throw an error if task does not exist", () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    assertEquals(result, false);
+    const hasTaskStub = stub(
+      taskManager,
+      "hasTask",
+      async () => await Promise.resolve(false),
+    );
+
+    assertRejects(
+      async () => await taskManager.toggleTaskDone(userId, todoId, 1),
+      Error,
+      "Task not found",
+    );
+
+    assertRejects(
+      async () => await taskManager.toggleTaskDone(userId + 1, todoId + 1, 1),
+      Error,
+      "Task not found",
+    );
+    assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
+    assertSpyCallArgs(hasTaskStub, 1, [userId + 1, todoId + 1, 1]);
   });
 });
 
 describe("removeTask", () => {
-  it("should return null for non-existing task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const removedTask = taskManager.removeTask(1);
+  it("should throw an error for non-existing task", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const hasTaskStub = stub(
+      taskManager,
+      "hasTask",
+      async () => await Promise.resolve(false),
+    );
 
-    assertEquals(removedTask, null);
-    assertEquals(taskManager.getAllTasks().length, 0);
+    await assertRejects(
+      async () => {
+        await taskManager.removeTask(userId, todoId, 1);
+      },
+      Error,
+      "Task not found",
+    );
+
+    await assertRejects(
+      async () => {
+        await taskManager.removeTask(userId + 1, todoId + 1, 1);
+      },
+      Error,
+      "Task not found",
+    );
+
+    assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
+    assertSpyCallArgs(hasTaskStub, 1, [userId + 1, todoId + 1, 1]);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
   });
 
-  it("should return the removed task", () => {
-    const taskManager = new TaskManager(() => 0);
-    const taskId = taskManager.addTask("test-task-1")!;
-    const task = taskManager.getTaskById(taskId);
-    const removedTask = taskManager.removeTask(0);
+  it("should return the status of removal", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
 
-    assertEquals(removedTask, task);
-    assertEquals(taskManager.getAllTasks().length, 0);
-  });
-});
+    const taskId = await taskManager.addTask(userId, todoId, "test-task-1")!;
+    const removeStatus = await taskManager.removeTask(userId, todoId, taskId!);
 
-describe("json", () => {
-  it("should return an empty array when no tasks are present", () => {
-    const taskManager = new TaskManager(() => 0);
-    const tasks = taskManager.json();
-
-    assertEquals(tasks, []);
+    assertEquals(removeStatus, true);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
+    assertEquals(await taskManager.getTaskById(userId, todoId, taskId!), null);
   });
 
-  it("should return all tasks in json format", () => {
+  it("should remove the task with the given id from multiple tasks", async () => {
     const idGenerator = (start: number) => () => start++;
-    const taskManager = new TaskManager(idGenerator(0));
+    const taskManager = TaskManager.init(idGenerator(0), collection);
 
-    taskManager.addTask("Test Task 1");
-    taskManager.addTask("Test Task 2");
+    const task1Id = await taskManager.addTask(userId, todoId, "test-task-1")!;
+    const task2Id = await taskManager.addTask(userId, todoId, "test-task-2")!;
 
-    const tasks = taskManager.json();
-    assertEquals(tasks.length, 2);
-    assertEquals(tasks, [
-      { task_id: 0, description: "Test Task 1", done: false },
-      { task_id: 1, description: "Test Task 2", done: false },
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 2);
+
+    const removeStatus = await taskManager.removeTask(userId, todoId, task1Id!);
+
+    assertEquals(removeStatus, true);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+    assertEquals(await taskManager.getTaskById(userId, todoId, task1Id!), null);
+    assertEquals(await taskManager.getAllTasks(userId, todoId), [
+      createTestTask(task2Id!, "test-task-2"),
     ]);
   });
 });

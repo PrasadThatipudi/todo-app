@@ -1,66 +1,128 @@
-import { TaskJSON } from "../types.ts";
-import { Task } from "./task.ts";
+import { Collection } from "mongodb";
+import { Task } from "../types.ts";
 
 class TaskManager {
-  private tasks: Map<number, Task> = new Map();
-  private readonly idGenerator: () => number;
-
-  constructor(idGenerator: () => number) {
-    this.idGenerator = idGenerator;
+  static init(
+    idGenerator: () => number,
+    collection: Collection<Task>,
+  ): TaskManager {
+    return new TaskManager(idGenerator, collection);
   }
 
-  getAllTasks(): Task[] {
-    return Array.from(this.tasks.values());
+  constructor(
+    private readonly idGenerator: () => number,
+    private readonly collection: Collection<Task>,
+  ) {}
+
+  async getAllTasks(userId: number, todoId?: number): Promise<Task[]> {
+    if (todoId !== undefined) {
+      return await this.collection
+        .find({ user_id: userId, todo_id: todoId })
+        .toArray();
+    }
+
+    return await this.collection.find({ user_id: userId }).toArray();
   }
 
-  getTaskById(taskId: number): Task | null {
-    return this.tasks.get(taskId) || null;
+  async getTaskById(
+    userId: number,
+    todoId: number,
+    taskId: number,
+  ): Promise<Task | null> {
+    return (
+      (await this.collection.findOne({
+        user_id: userId,
+        todo_id: todoId,
+        _id: taskId,
+      })) || null
+    );
   }
 
-  hasTask(lookUpKey: number | string): boolean {
-    // lookUpKey -> taskId
-    if (typeof lookUpKey === "number") return this.tasks.has(lookUpKey);
-
-    //lookUpKey -> description
-    return this.tasks
-      .values()
-      .some(
-        (task: Task) =>
-          task.description.toLowerCase() === lookUpKey.toLowerCase(),
-      );
+  private isNumber(value: unknown): value is number {
+    return typeof value === "number";
   }
 
-  addTask(inputDescription: string): number | null {
-    const description = inputDescription.trim();
+  async hasTask(
+    userId: number,
+    todoId: number,
+    lookUpValue: number | string,
+  ): Promise<boolean> {
+    const lookUpKey = this.isNumber(lookUpValue) ? "_id" : "description";
 
-    if (!description || this.hasTask(description)) return null;
+    const match = {
+      user_id: userId,
+      todo_id: todoId,
+      [lookUpKey]: lookUpValue,
+    };
+    const matchedTasks = await this.collection.find(match).toArray();
+
+    return matchedTasks.length > 0;
+  }
+
+  async addTask(
+    userId: number,
+    todoId: number,
+    potentialDescription: string,
+  ): Promise<number | null> {
+    const description = potentialDescription.trim();
+    if (!description) throw new Error("Task description cannot be empty");
+
+    if (await this.hasTask(userId, todoId, description)) {
+      throw new Error("Task description already exists");
+    }
 
     const taskId = this.idGenerator();
-    this.tasks.set(taskId, new Task(taskId, description));
+    const newTask = {
+      _id: taskId,
+      description,
+      done: false,
+      user_id: userId,
+      todo_id: todoId,
+    };
 
-    return taskId;
+    const insertedTask = await this.collection.insertOne(newTask);
+
+    return insertedTask.insertedId;
   }
 
-  toggleTaskDone(taskId: number): boolean {
-    const targetTask = this.getTaskById(taskId);
+  async toggleTaskDone(
+    userId: number,
+    todoId: number,
+    taskId: number,
+  ): Promise<boolean> {
+    if (!(await this.hasTask(userId, userId, taskId))) {
+      throw new Error("Task not found");
+    }
 
-    if (!targetTask) return false;
+    const task = await this.collection.findOne({
+      user_id: userId,
+      todo_id: todoId,
+      _id: taskId,
+    });
 
-    targetTask.changeTaskDoneState(!targetTask.done);
-    return true;
+    const updateResult = await this.collection.updateOne(
+      { user_id: userId, todo_id: todoId, _id: taskId },
+      { $set: { done: !task!.done } },
+    );
+
+    return updateResult.modifiedCount > 0;
   }
 
-  removeTask(taskId: number): Task | null {
-    const targetTask = this.getTaskById(taskId);
+  async removeTask(
+    userId: number,
+    todoId: number,
+    taskId: number,
+  ): Promise<boolean> {
+    if (!(await this.hasTask(userId, todoId, taskId))) {
+      throw new Error("Task not found");
+    }
+    const deletionResult = await this.collection.deleteOne({
+      user_id: 0,
+      todo_id: 0,
+      _id: 0,
+    });
 
-    if (!targetTask) return null;
-    this.tasks.delete(taskId);
-
-    return targetTask;
-  }
-
-  json(): TaskJSON[] {
-    return this.getAllTasks().map((task) => task.json());
+    return deletionResult.deletedCount > 0;
   }
 }
 

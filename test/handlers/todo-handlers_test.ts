@@ -1,51 +1,98 @@
-import { describe, it } from "@std/testing/bdd";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import createApp from "../../src/app.ts";
 import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
-import { Todo } from "../../src/models/todo.ts";
+import { Collection, MongoClient } from "mongodb";
+import { Task, Todo, TodoJSON } from "../../src/types.ts";
+import { TaskManager } from "../../src/models/task-manager.ts";
+
+let client: MongoClient;
+let todoCollection: Collection<Todo>;
+let taskCollection: Collection<Task>;
+const userId = 0;
+
+beforeEach(async () => {
+  client = new MongoClient("mongodb://localhost:27017");
+  await client.connect();
+  const database = client.db("test");
+  todoCollection = database.collection("todos");
+  taskCollection = database.collection("tasks");
+
+  await todoCollection.deleteMany({});
+  await taskCollection.deleteMany({});
+});
+
+afterEach(async () => {
+  await client.close();
+});
+
+const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
+  user_id,
+  title,
+  _id,
+});
 
 describe("serveTodos", () => {
   it("should return all todos as json", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager };
 
-    const todoManagerJson = stub(appContext.todoManager, "json", () => []);
+    const todo = createTodo(0, "Test Todo", 0);
+
+    const todoManagerJSON = stub(
+      todoManager,
+      "getAllTodos",
+      () => Promise.resolve([todo]),
+    );
+
+    const taskManagerJSON = stub(
+      taskManager,
+      "getAllTasks",
+      () => Promise.resolve([]),
+    );
+
+    const todosJSON: TodoJSON[] = [
+      {
+        title: todo.title,
+        user_id: todo.user_id,
+        todo_id: todo._id,
+        tasks: [],
+      },
+    ];
 
     const app = createApp(appContext);
     const response = await app.request("/todos");
 
     assertEquals(response.status, 200);
-    assertSpyCallArgs(todoManagerJson, 0, []);
+    assertSpyCallArgs(todoManagerJSON, 0, [0]);
+    assertSpyCallArgs(taskManagerJSON, 0, [0, 0]);
+    assertEquals(await response.json(), todosJSON);
   });
 });
 
 describe("handleAddTodo", () => {
   it("should add a new todo and return it as json", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager };
 
-    const todo = Todo.init(0, "New Todo", () => 0);
-
-    const todoManagerAdd = stub(appContext.todoManager, "addTodo", () => 0);
-    const todoManagerGet = stub(
-      appContext.todoManager,
-      "getTodoById",
-      () => todo,
+    const todoManagerAdd = stub(
+      todoManager,
+      "addTodo",
+      () => Promise.resolve(0),
     );
-    const todoJsonStub = stub(todo, "json", () => ({
-      todo_Id: 0,
-      title: "New Todo",
-      tasks: [],
-    }));
+    const todoManagerGet = stub(
+      todoManager,
+      "getTodoById",
+      () => Promise.resolve(createTodo(0, "New Todo", userId)),
+    );
+    const taskManagerGet = stub(
+      taskManager,
+      "getAllTasks",
+      () => Promise.resolve([]),
+    );
 
     const app = createApp(appContext);
     const title = "New Todo";
@@ -56,82 +103,75 @@ describe("handleAddTodo", () => {
     });
 
     assertEquals(response.status, 201);
-    assertSpyCallArgs(todoManagerAdd, 0, [title]);
+    assertSpyCallArgs(todoManagerAdd, 0, [0, title]);
 
     const todoJson = await response.json();
-    assertEquals(todoJson, { todo_Id: 0, title, tasks: [] });
-    assertSpyCallArgs(todoManagerGet, 0, [0]);
-    assertSpyCallArgs(todoJsonStub, 0, []);
+    assertSpyCallArgs(todoManagerGet, 0, [0, 0]);
+    assertSpyCallArgs(taskManagerGet, 0, [0, 0]);
+    assertEquals(todoJson, { todo_id: 0, user_id: 0, title, tasks: [] });
   });
 
   it("should able to add multiple todos", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const idGenerator = (start: number) => () => start++;
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const appContext = { todoManager, taskManager };
 
-    const todo1 = Todo.init(0, "First Todo", () => 0);
-    const todo2 = Todo.init(1, "Second Todo", () => 0);
-
-    const todoManagerAdd = stub(appContext.todoManager, "addTodo", (title) => {
-      return title === "First Todo" ? 0 : 1;
+    const todo1 = createTodo(0, "First Todo", 0);
+    const todo2 = createTodo(1, "Second Todo", 0);
+    const todoManagerAdd = stub(todoManager, "addTodo", (_id, title) => {
+      return Promise.resolve(title === "First Todo" ? 0 : 1);
     });
     const todoManagerGet = stub(
-      appContext.todoManager,
+      todoManager,
       "getTodoById",
-      (id) => id === 0 ? todo1 : todo2,
+      (_userId, todoId) => Promise.resolve(todoId === 0 ? todo1 : todo2),
     );
-    const todoJsonStub1 = stub(todo1, "json", () => ({
-      todo_Id: 0,
-      title: "First Todo",
-      tasks: [],
-    }));
-    const todoJsonStub2 = stub(todo2, "json", () => ({
-      todo_Id: 1,
-      title: "Second Todo",
-      tasks: [],
-    }));
-
     const app = createApp(appContext);
 
     // Add first todo
-    let response = await app.request("/todos", {
+    const response1 = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "First Todo" }),
       headers: { "Content-Type": "application/json" },
     });
 
-    assertEquals(response.status, 201);
-    assertSpyCallArgs(todoManagerAdd, 0, ["First Todo"]);
-    let todoJson = await response.json();
-    assertEquals(todoJson, { todo_Id: 0, title: "First Todo", tasks: [] });
-    assertSpyCallArgs(todoManagerGet, 0, [0]);
-    assertSpyCallArgs(todoJsonStub1, 0, []);
+    assertEquals(response1.status, 201);
+    assertSpyCallArgs(todoManagerAdd, 0, [0, "First Todo"]);
+    const todoJSON1 = await response1.json();
+    const expectedJSON1 = {
+      todo_id: 0,
+      user_id: 0,
+      title: "First Todo",
+      tasks: [],
+    };
+    assertEquals(todoJSON1, expectedJSON1);
+    assertSpyCallArgs(todoManagerGet, 0, [0, 0]);
 
     // Add second todo
-    response = await app.request("/todos", {
+    const response2 = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "Second Todo" }),
       headers: { "Content-Type": "application/json" },
     });
 
-    assertEquals(response.status, 201);
-    assertSpyCallArgs(todoManagerAdd, 1, ["Second Todo"]);
-    todoJson = await response.json();
-    assertEquals(todoJson, { todo_Id: 1, title: "Second Todo", tasks: [] });
-    assertSpyCallArgs(todoManagerGet, 1, [1]);
-    assertSpyCallArgs(todoJsonStub2, 0, []);
+    assertEquals(response2.status, 201);
+    assertSpyCallArgs(todoManagerAdd, 1, [0, "Second Todo"]);
+    const todoJSON2 = await response2.json();
+    const expectedJSON2: TodoJSON = {
+      todo_id: 1,
+      user_id: 0,
+      title: "Second Todo",
+      tasks: [],
+    };
+    assertEquals(todoJSON2, expectedJSON2);
+    assertSpyCallArgs(todoManagerGet, 1, [0, 1]);
   });
 
   it("should return 400 if title is missing", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -146,12 +186,9 @@ describe("handleAddTodo", () => {
   });
 
   it("should return 400 if title is empty string", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -166,12 +203,9 @@ describe("handleAddTodo", () => {
   });
 
   it("should return 400 if title is empty after trim", async () => {
-    const appContext = {
-      todoManager: TodoManager.init(
-        () => 0,
-        () => () => 0,
-      ),
-    };
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {

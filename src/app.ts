@@ -11,6 +11,8 @@ const setupAppContext =
   (appContext: AppContext): MiddlewareHandler =>
   async (ctx: Context, next: Next) => {
     ctx.set("todoManager", appContext.todoManager);
+    ctx.set("taskManager", appContext.taskManager);
+    ctx.set("userId", 0);
 
     return await next();
   };
@@ -22,7 +24,7 @@ const checkTodoExistence: MiddlewareHandler = async (
   const todoManager = ctx.get("todoManager");
   const todoId = Number(ctx.req.param("todoId"));
 
-  if (!todoManager.hasTodo(todoId)) {
+  if (!(await todoManager.hasTodo(0, todoId))) {
     return ctx.json({ message: "Todo is not exist!" }, 404);
   }
 
@@ -33,11 +35,9 @@ const checkTaskExistence: MiddlewareHandler = async (
   ctx: Context<{ Variables: AppVariables }>,
   next: Next,
 ) => {
-  const todoManager = ctx.get("todoManager");
-  const todoId = Number(ctx.req.param("todoId"));
-  const taskId = Number(ctx.req.param("taskId"));
+  const taskManager = ctx.get("taskManager");
 
-  if (!todoManager.hasTask(todoId, taskId)) {
+  if (!(await taskManager.hasTask(0, 0, 0))) {
     return ctx.json({ message: "Task is not exist!" }, 404);
   }
 

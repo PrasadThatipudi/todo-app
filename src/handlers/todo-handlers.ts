@@ -1,27 +1,49 @@
 import { Context } from "hono";
-import { AppVariables } from "../types.ts";
+import { AppVariables, Todo, TodoJSON } from "../types.ts";
 
-const serveTodos = (ctx: Context<{ Variables: AppVariables }>) => {
+const serveTodos = async (ctx: Context<{ Variables: AppVariables }>) => {
   const todoManager = ctx.get("todoManager");
+  const taskManager = ctx.get("taskManager");
 
-  return ctx.json(todoManager.json());
+  const todos = await todoManager.getAllTodos(0);
+  const userTodosJSON: TodoJSON[] = await Promise.all(
+    todos.map(async (todo: Todo): Promise<TodoJSON> => {
+      const { title, _id: todo_id } = todo;
+      return {
+        title,
+        user_id: 0,
+        todo_id,
+        tasks: await taskManager.getAllTasks(0, todo_id),
+      };
+    }),
+  );
+
+  return ctx.json(userTodosJSON);
 };
 
 const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
   const todoManager = ctx.get("todoManager");
+  const taskManager = ctx.get("taskManager");
   const body = await ctx.req.json();
 
-  if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+  try {
+    const addedTodoId = await todoManager.addTodo(0, body.title);
+    const todo = (await todoManager.getTodoById(0, addedTodoId))!;
+    const { title, user_id, _id: todo_id } = todo;
+    const todoJSON: TodoJSON = {
+      user_id,
+      title,
+      todo_id,
+      tasks: await taskManager.getAllTasks(0, todo_id),
+    };
+
+    return ctx.json(todoJSON, 201);
+  } catch {
     return ctx.json(
       { message: "Title is required and must be a string." },
       400,
     );
   }
-
-  const newTodoId = todoManager.addTodo(body.title);
-  const newTodo = todoManager.getTodoById(newTodoId)!;
-
-  return ctx.json(newTodo.json(), 201);
 };
 
 export { handleAddTodo, serveTodos };
