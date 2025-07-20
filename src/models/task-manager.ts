@@ -90,7 +90,7 @@ class TaskManager {
     todoId: number,
     taskId: number,
   ): Promise<boolean> {
-    if (!(await this.hasTask(userId, userId, taskId))) {
+    if (!(await this.hasTask(userId, todoId, taskId))) {
       throw new Error("Task not found");
     }
 
@@ -118,8 +118,8 @@ class TaskManager {
     }
     const deletionResult = await this.collection.deleteOne({
       user_id: 0,
-      todo_id: 0,
-      _id: 0,
+      todo_id: todoId,
+      _id: taskId,
     });
 
     return deletionResult.deletedCount > 0;

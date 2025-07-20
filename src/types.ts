@@ -9,6 +9,7 @@ interface Student {
 interface AppContext {
   todoManager: TodoManager;
   taskManager: TaskManager;
+  logger?: (message: string) => void;
 }
 interface TaskJSON {
   task_id: number;

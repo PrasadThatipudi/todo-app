@@ -238,6 +238,8 @@ describe("addTodo", () => {
     assertEquals(allTodos.length, 2);
     assertEquals(addedTodoId1, 0);
     assertEquals(addedTodoId2, 1);
+    assertEquals(allTodos[0], createTodo(0, "Test Todo 1", userId));
+    assertEquals(allTodos[1], createTodo(1, "Test Todo 2", userId));
   });
 });
 

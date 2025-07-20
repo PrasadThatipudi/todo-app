@@ -24,6 +24,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await todoCollection.deleteMany({});
+  await taskCollection.deleteMany({});
+  await client.db("test").dropDatabase();
   await client.close();
 });
 
@@ -33,11 +36,13 @@ const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
   _id,
 });
 
+const silentLogger = () => {};
+
 describe("serveTodos", () => {
   it("should return all todos as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const todo = createTodo(0, "Test Todo", 0);
 
@@ -76,7 +81,7 @@ describe("handleAddTodo", () => {
   it("should add a new todo and return it as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const todoManagerAdd = stub(
       todoManager,
@@ -115,7 +120,7 @@ describe("handleAddTodo", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const todo1 = createTodo(0, "First Todo", 0);
     const todo2 = createTodo(1, "Second Todo", 0);
@@ -171,7 +176,7 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is missing", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -182,13 +187,30 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title is required and must be a string.");
+    assertEquals(errorJson.message, "Title is required");
+  });
+
+  it("should return 400 if title is not a string", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager, logger: silentLogger };
+
+    const app = createApp(appContext);
+    const response = await app.request("/todos", {
+      method: "POST",
+      body: JSON.stringify({ title: 123 }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    assertEquals(response.status, 400);
+    const errorJson = await response.json();
+    assertEquals(errorJson.message, "Title must be a string.");
   });
 
   it("should return 400 if title is empty string", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -199,13 +221,13 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title is required and must be a string.");
+    assertEquals(errorJson.message, "Title should not be empty.");
   });
 
   it("should return 400 if title is empty after trim", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -216,6 +238,6 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title is required and must be a string.");
+    assertEquals(errorJson.message, "Title should not be empty.");
   });
 });

@@ -314,6 +314,32 @@ describe("toggleTaskDone", () => {
     );
   });
 
+  it("should toggle task done for any todo", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const todoId1 = 0;
+    const todoId2 = 1;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+
+    const task1Id = await taskManager.addTask(userId, todoId1, "test-task-1")!;
+    const task2Id = await taskManager.addTask(userId, todoId2, "test-task-2")!;
+
+    const task1 = await taskManager.getTaskById(userId, todoId1, task1Id!);
+    const task2 = await taskManager.getTaskById(userId, todoId2, task2Id!);
+
+    assertEquals(task1!.done, false);
+    assertEquals(task2!.done, false);
+    assert(await taskManager.toggleTaskDone(userId, todoId1, task1Id!));
+    assertEquals(
+      (await taskManager.getTaskById(userId, todoId1, task1Id!))!.done,
+      true,
+    );
+    assert(await taskManager.toggleTaskDone(userId, todoId2, task2Id!));
+    assertEquals(
+      (await taskManager.getTaskById(userId, todoId2, task2Id!))!.done,
+      true,
+    );
+  });
+
   it("should throw an error if task does not exist", () => {
     const taskManager = TaskManager.init(() => 0, collection);
 
@@ -389,13 +415,45 @@ describe("removeTask", () => {
 
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 2);
 
-    const removeStatus = await taskManager.removeTask(userId, todoId, task1Id!);
+    const result1 = await taskManager.removeTask(userId, todoId, task1Id!);
+    const result2 = await taskManager.removeTask(userId, todoId, task2Id!);
 
-    assertEquals(removeStatus, true);
-    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+    assertEquals(result1, true);
+    assertEquals(result2, true);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
+
     assertEquals(await taskManager.getTaskById(userId, todoId, task1Id!), null);
-    assertEquals(await taskManager.getAllTasks(userId, todoId), [
-      createTestTask(task2Id!, "test-task-2"),
-    ]);
+    assertEquals(await taskManager.getTaskById(userId, todoId, task2Id!), null);
+  });
+
+  it("should remove the task with the given id from multiple todos", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+
+    const todoId1 = 0;
+    const todoId2 = 1;
+
+    const task1Id = await taskManager.addTask(userId, todoId1, "test-task-1")!;
+    const task2Id = await taskManager.addTask(userId, todoId2, "test-task-2")!;
+
+    assertEquals((await taskManager.getAllTasks(userId, todoId1)).length, 1);
+    assertEquals((await taskManager.getAllTasks(userId, todoId2)).length, 1);
+
+    const result1 = await taskManager.removeTask(userId, todoId1, task1Id!);
+    const result2 = await taskManager.removeTask(userId, todoId2, task2Id!);
+
+    assertEquals(result1, true);
+    assertEquals(result2, true);
+    assertEquals((await taskManager.getAllTasks(userId, todoId1)).length, 0);
+    assertEquals((await taskManager.getAllTasks(userId, todoId2)).length, 0);
+
+    assertEquals(
+      await taskManager.getTaskById(userId, todoId1, task1Id!),
+      null,
+    );
+    assertEquals(
+      await taskManager.getTaskById(userId, todoId2, task2Id!),
+      null,
+    );
   });
 });

@@ -1,4 +1,5 @@
 import { Context, Hono, MiddlewareHandler, Next } from "hono";
+import { logger } from "hono/logger";
 import { AppContext, AppVariables } from "./types.ts";
 import { handleAddTodo, serveTodos } from "./handlers/todo-handlers.ts";
 import {
@@ -36,8 +37,10 @@ const checkTaskExistence: MiddlewareHandler = async (
   next: Next,
 ) => {
   const taskManager = ctx.get("taskManager");
+  const todoId = Number(ctx.req.param("todoId"));
+  const taskId = Number(ctx.req.param("taskId"));
 
-  if (!(await taskManager.hasTask(0, 0, 0))) {
+  if (!(await taskManager.hasTask(0, todoId, taskId))) {
     return ctx.json({ message: "Task is not exist!" }, 404);
   }
 
@@ -47,6 +50,7 @@ const checkTaskExistence: MiddlewareHandler = async (
 const createApp = (appContext: AppContext) => {
   const app = new Hono<{ Variables: AppVariables }>();
 
+  app.use(logger(appContext.logger));
   app.use(setupAppContext(appContext));
 
   app.get("/todos", serveTodos);
@@ -59,8 +63,6 @@ const createApp = (appContext: AppContext) => {
   app.use("/todos/:todoId/tasks/:taskId", checkTaskExistence);
   app.patch("/todos/:todoId/tasks/:taskId", handleToggleTask);
 
-  app.use("/todos/:todoId/tasks/:taskId", checkTodoExistence);
-  app.use("/todos/:todoId/tasks/:taskId", checkTaskExistence);
   app.delete("/todos/:todoId/tasks/:taskId", handleDeleteTask);
 
   return app;

@@ -35,8 +35,10 @@ class TodoManager {
     );
   }
 
-  async addTodo(userId: number, title: string): Promise<number> {
-    if (!title || !title.trim()) throw new Error("Title cannot be empty");
+  async addTodo(userId: number, potentialTitle: string): Promise<number> {
+    const title = potentialTitle.trim();
+    if (!title.trim()) throw new Error("Title cannot be empty");
+
     if (await this.hasTodo(userId, title)) {
       throw new Error("Todo with this title already exists");
     }
@@ -44,7 +46,7 @@ class TodoManager {
     const insertionResult = await this.todoCollection.insertOne({
       _id: this.todoIdGenerator(),
       user_id: userId,
-      title: "Test Todo",
+      title: title,
     });
 
     return insertionResult.insertedId as number;

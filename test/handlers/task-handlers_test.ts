@@ -13,6 +13,8 @@ let taskCollection: Collection<Task>;
 const userId = 0;
 const todoId = 0;
 
+const silentLogger = () => {};
+
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
   await client.connect();
@@ -25,6 +27,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await todoCollection.deleteMany({});
+  await taskCollection.deleteMany({});
+  await client.db("test").dropDatabase();
   await client.close();
 });
 
@@ -40,7 +45,7 @@ describe("handleAddTask", () => {
   it("should add a task and return task json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const expectedTaskJson: Task = {
       _id: 0,
       todo_id: await todoManager.addTodo(userId, "Test Todo"),
@@ -77,7 +82,7 @@ describe("handleAddTask", () => {
   it("should respond with 404 if todoId is not exist", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const app = createApp(appContext);
     const todoId = 0;
@@ -105,7 +110,7 @@ describe("handleAddTask", () => {
     const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
     const todoId2 = await todoManager.addTodo(userId, "Test Todo 2");
 
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
     const addTaskStub = stub(taskManager, "addTask", () => Promise.resolve(0));
     const getTaskStub = stub(
@@ -149,7 +154,7 @@ describe("handleAddTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId = await todoManager.addTodo(0, "Test Todo");
@@ -197,7 +202,7 @@ describe("handleToggleTask", () => {
     const todoId = 0;
     const taskId = 0;
 
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
@@ -210,28 +215,60 @@ describe("handleToggleTask", () => {
     assertEquals(jsonResponse, { message: "Todo is not exist!" });
   });
 
-  it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
+  it("should respond with 404 if task is not exist with the given todoId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const todoId = await todoManager.addTodo(0, "Test Todo");
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
-    const appContext = { todoManager, taskManager };
     const app = createApp(appContext);
+
+    const hasTodoStub = stub(
+      todoManager,
+      "hasTodo",
+      () => Promise.resolve(false),
+    );
 
     const response = await app.request(`/todos/${todoId}/tasks/0`, {
       method: "PATCH",
     });
 
     assertEquals(response.status, 404);
-    const jsonResponse = await response.json();
 
+    assertSpyCallArgs(hasTodoStub, 0, [0, todoId]);
+
+    const jsonResponse = await response.json();
+    assertEquals(jsonResponse, { message: "Todo is not exist!" });
+  });
+
+  it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const todoId = await todoManager.addTodo(0, "Test Todo");
+
+    const app = createApp(appContext);
+
+    const hasTaskStub = stub(
+      taskManager,
+      "hasTask",
+      () => Promise.resolve(false),
+    );
+
+    const response = await app.request(`/todos/${todoId}/tasks/999`, {
+      method: "PATCH",
+    });
+
+    assertEquals(response.status, 404);
+    assertSpyCallArgs(hasTaskStub, 0, [0, todoId, 999]);
+
+    const jsonResponse = await response.json();
     assertEquals(jsonResponse, { message: "Task is not exist!" });
   });
 
   it("should return task if task status toggled successfully", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const todoId = await todoManager.addTodo(0, "Test Todo");
     const taskId = await taskManager.addTask(0, todoId, "Test Task");
 
@@ -280,7 +317,7 @@ describe("handleToggleTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId = await todoManager.addTodo(0, "Test Todo");
@@ -324,7 +361,7 @@ describe("handleToggleTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId1 = await todoManager.addTodo(0, "Test Todo 1");
@@ -370,7 +407,7 @@ describe("handleDeleteTask", () => {
   it("should respond with 404 if todo is not exist with the given todoId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId = 0;
@@ -391,7 +428,7 @@ describe("handleDeleteTask", () => {
     const taskManager = TaskManager.init(() => 0, taskCollection);
     const todoId = await todoManager.addTodo(userId, "Test Todo");
 
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const response = await app.request(`/todos/${todoId}/tasks/0`, {
@@ -407,7 +444,7 @@ describe("handleDeleteTask", () => {
   it("should delete task and return true if deleted successfully", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
 
     const todoId = await todoManager.addTodo(userId, "Test Todo");
     const taskId = await taskManager.addTask(userId, todoId, "Test Task");
@@ -434,7 +471,7 @@ describe("handleDeleteTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId1 = await todoManager.addTodo(0, "Test Todo 1");
@@ -472,7 +509,7 @@ describe("handleDeleteTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager };
+    const appContext = { todoManager, taskManager, logger: silentLogger };
     const app = createApp(appContext);
 
     const todoId = await todoManager.addTodo(0, "Test Todo");
