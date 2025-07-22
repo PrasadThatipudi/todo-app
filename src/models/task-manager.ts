@@ -94,11 +94,7 @@ class TaskManager {
       throw new Error("Task not found");
     }
 
-    const task = await this.collection.findOne({
-      user_id: userId,
-      todo_id: todoId,
-      _id: taskId,
-    });
+    const task = await this.getTaskById(userId, todoId, taskId);
 
     const updateResult = await this.collection.updateOne(
       { user_id: userId, todo_id: todoId, _id: taskId },
@@ -117,7 +113,7 @@ class TaskManager {
       throw new Error("Task not found");
     }
     const deletionResult = await this.collection.deleteOne({
-      user_id: 0,
+      user_id: userId,
       todo_id: todoId,
       _id: taskId,
     });

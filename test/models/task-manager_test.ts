@@ -113,6 +113,20 @@ describe("getTaskById", () => {
     assertEquals(task, null);
   });
 
+  it("should return null for existing task with different userId", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const taskId = 1;
+    const task: Task = createTestTask(taskId, "Test Task", todoId);
+    await collection.insertOne(task);
+
+    const fetchedTask = await taskManager.getTaskById(
+      userId + 1,
+      todoId,
+      taskId,
+    );
+    assertEquals(fetchedTask, null);
+  });
+
   it("should return the added task", async () => {
     const taskManager = TaskManager.init(() => 0, collection);
     const task: Task = createTestTask(0, "Test Task 1");
@@ -363,6 +377,61 @@ describe("toggleTaskDone", () => {
     assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
     assertSpyCallArgs(hasTaskStub, 1, [userId + 1, todoId + 1, 1]);
   });
+
+  it("should call hasTask and getTaskById with correct parameters", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const hasTaskStub = stub(
+      taskManager,
+      "hasTask",
+      async () => await Promise.resolve(true),
+    );
+    const getTaskByIdStub = stub(
+      taskManager,
+      "getTaskById",
+      async () => await Promise.resolve(createTestTask(1, "test-task-1")),
+    );
+
+    await taskManager.toggleTaskDone(userId, todoId, 1);
+
+    assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
+    assertSpyCallArgs(getTaskByIdStub, 0, [userId, todoId, 1]);
+
+    // Checking for another user and todo
+    await taskManager.toggleTaskDone(userId + 1, todoId + 1, 1);
+
+    assertSpyCallArgs(hasTaskStub, 1, [userId + 1, todoId + 1, 1]);
+    assertSpyCallArgs(getTaskByIdStub, 1, [userId + 1, todoId + 1, 1]);
+  });
+
+  it("should update the task done state in the database for any user and todo", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+    const userId1 = 0;
+    const todoId1 = 0;
+    const userId2 = 1;
+    const todoId2 = 1;
+
+    const taskId1 = await taskManager.addTask(userId1, todoId1, "test-task-1")!;
+    const task1 = await taskManager.getTaskById(userId1, todoId1, taskId1!);
+
+    assertEquals(task1!.done, false);
+
+    await taskManager.toggleTaskDone(userId1, todoId1, taskId1!);
+    assertEquals(
+      (await taskManager.getTaskById(userId1, todoId1, taskId1!))!.done,
+      true,
+    );
+
+    const taskId2 = await taskManager.addTask(userId2, todoId2, "test-task-2")!;
+    const task2 = await taskManager.getTaskById(userId2, todoId2, taskId2!);
+
+    assertEquals(task2!.done, false);
+    await taskManager.toggleTaskDone(userId2, todoId2, taskId2!);
+    assertEquals(
+      (await taskManager.getTaskById(userId2, todoId2, taskId2!))!.done,
+      true,
+    );
+  });
 });
 
 describe("removeTask", () => {
@@ -453,6 +522,40 @@ describe("removeTask", () => {
     );
     assertEquals(
       await taskManager.getTaskById(userId, todoId2, task2Id!),
+      null,
+    );
+  });
+
+  it("should remove the task in database for any user & todo", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+    const userId1 = 0;
+    const todoId1 = 0;
+    const userId2 = 1;
+    const todoId2 = 1;
+
+    const taskId1 = await taskManager.addTask(userId1, todoId1, "test-task-1")!;
+    const task1 = await taskManager.getTaskById(userId1, todoId1, taskId1!);
+
+    assertEquals(task1!, createTestTask(taskId1!, "test-task-1", todoId1));
+    await taskManager.removeTask(userId1, todoId1, taskId1!);
+    assertEquals(
+      await taskManager.getTaskById(userId1, todoId1, taskId1!),
+      null,
+    );
+
+    const taskId2 = await taskManager.addTask(userId2, todoId2, "test-task-2")!;
+    const task2 = await taskManager.getTaskById(userId2, todoId2, taskId2!);
+
+    const expectedTask2: Task = {
+      ...createTestTask(taskId2!, "test-task-2", todoId2),
+      user_id: userId2,
+      todo_id: todoId2,
+    };
+    assertEquals(task2!, expectedTask2);
+    await taskManager.removeTask(userId2, todoId2, taskId2!);
+    assertEquals(
+      await taskManager.getTaskById(userId2, todoId2, taskId2!),
       null,
     );
   });
