@@ -1,12 +1,18 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@denosaurs/plug@^1.1.0": "1.1.0",
+    "jsr:@felix/argon2@^3.0.2": "3.0.2",
     "jsr:@std/assert@*": "1.0.13",
     "jsr:@std/assert@^1.0.13": "1.0.13",
     "jsr:@std/data-structures@^1.0.8": "1.0.8",
+    "jsr:@std/encoding@1": "1.0.10",
+    "jsr:@std/fmt@1": "1.0.8",
+    "jsr:@std/fs@1": "1.0.18",
     "jsr:@std/fs@^1.0.18": "1.0.18",
     "jsr:@std/internal@^1.0.6": "1.0.8",
     "jsr:@std/internal@^1.0.8": "1.0.8",
+    "jsr:@std/path@1": "1.1.0",
     "jsr:@std/path@^1.1.0": "1.1.0",
     "jsr:@std/testing@^1.0.14": "1.0.14",
     "npm:@types/node@*": "22.15.15",
@@ -14,6 +20,21 @@
     "npm:mongodb@^6.17.0": "6.17.0"
   },
   "jsr": {
+    "@denosaurs/plug@1.1.0": {
+      "integrity": "eb2f0b7546c7bca2000d8b0282c54d50d91cf6d75cb26a80df25a6de8c4bc044",
+      "dependencies": [
+        "jsr:@std/encoding",
+        "jsr:@std/fmt",
+        "jsr:@std/fs@1",
+        "jsr:@std/path@1"
+      ]
+    },
+    "@felix/argon2@3.0.2": {
+      "integrity": "62a7ab62f29ecc3532b4f28131c383a602bc471dbcb9c74658d8e65f6588208a",
+      "dependencies": [
+        "jsr:@denosaurs/plug"
+      ]
+    },
     "@std/assert@1.0.13": {
       "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
       "dependencies": [
@@ -23,10 +44,16 @@
     "@std/data-structures@1.0.8": {
       "integrity": "2fb7219247e044c8fcd51341788547575653c82ae2c759ff209e0263ba7d9b66"
     },
+    "@std/encoding@1.0.10": {
+      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
+    },
+    "@std/fmt@1.0.8": {
+      "integrity": "71e1fc498787e4434d213647a6e43e794af4fd393ef8f52062246e06f7e372b7"
+    },
     "@std/fs@1.0.18": {
       "integrity": "24bcad99eab1af4fde75e05da6e9ed0e0dce5edb71b7e34baacf86ffe3969f3a",
       "dependencies": [
-        "jsr:@std/path"
+        "jsr:@std/path@^1.1.0"
       ]
     },
     "@std/internal@1.0.8": {
@@ -40,9 +67,9 @@
       "dependencies": [
         "jsr:@std/assert@^1.0.13",
         "jsr:@std/data-structures",
-        "jsr:@std/fs",
+        "jsr:@std/fs@^1.0.18",
         "jsr:@std/internal@^1.0.8",
-        "jsr:@std/path"
+        "jsr:@std/path@^1.1.0"
       ]
     }
   },
@@ -123,6 +150,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@felix/argon2@^3.0.2",
       "jsr:@std/assert@^1.0.13",
       "jsr:@std/testing@^1.0.14",
       "npm:hono@^4.8.4",

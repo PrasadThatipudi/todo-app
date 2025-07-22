@@ -31,6 +31,12 @@ interface Todo {
   user_id: number;
 }
 
+interface User {
+  _id: number;
+  username: string;
+  password: string;
+}
+
 interface TodoJSON {
   todo_id: number;
   user_id: number;
@@ -52,4 +58,5 @@ export type {
   TaskJSON,
   Todo,
   TodoJSON,
+  User,
 };
