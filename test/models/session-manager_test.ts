@@ -64,6 +64,41 @@ describe("getSessionById", () => {
   });
 });
 
+describe("hasSession", () => {
+  it("should return false if no session is found for the user", async () => {
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const hasSession1 = await sessionManager.hasSession(999);
+
+    assertEquals(hasSession1, false);
+
+    const hasSession2 = await sessionManager.hasSession(1);
+    assertEquals(hasSession2, false);
+  });
+
+  it("should return true if a session exists for the user", async () => {
+    const session1: Session = { _id: 0, user_id: 123 };
+    const session2: Session = { _id: 1, user_id: 456 };
+    await sessionCollection.insertOne(session1);
+    await sessionCollection.insertOne(session2);
+
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const hasSession1 = await sessionManager.hasSession(0);
+
+    assertEquals(hasSession1, true);
+
+    const hasSession2 = await sessionManager.hasSession(1);
+    assertEquals(hasSession2, true);
+  });
+});
+
 describe("createSession", () => {
   it("should throw an error if user does not exist", async () => {
     const sessionManager = SessionManager.init(
@@ -206,5 +241,65 @@ describe("createSession", () => {
     assertEquals(sessionId2, 1);
     const foundSession2 = await sessionManager.getSessionById(1);
     assertEquals(foundSession2, { _id: 1, user_id: userId });
+  });
+});
+
+describe("deleteSession", () => {
+  it("should throw an error if session does not exist", async () => {
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+
+    const hasSessionStub = stub(
+      sessionManager,
+      "hasSession",
+      () => Promise.resolve(false),
+    );
+
+    const error1 = await assertRejects(async () => {
+      await sessionManager.deleteSession(999);
+    }, Error);
+
+    assertSpyCallArgs(hasSessionStub, 0, [999]);
+    assertEquals(error1.message, "Session not found!");
+
+    const error2 = await assertRejects(async () => {
+      await sessionManager.deleteSession(1);
+    }, Error);
+    assertSpyCallArgs(hasSessionStub, 1, [1]);
+    assertEquals(error2.message, "Session not found!");
+  });
+
+  it("should delete an existing session", async () => {
+    const session1: Session = { _id: 0, user_id: 123 };
+    const session2: Session = { _id: 1, user_id: 456 };
+    await sessionCollection.insertOne(session1);
+    await sessionCollection.insertOne(session2);
+
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+
+    const hasSessionStub = stub(
+      sessionManager,
+      "hasSession",
+      () => Promise.resolve(true),
+    );
+
+    await sessionManager.deleteSession(0);
+    assertSpyCallArgs(hasSessionStub, 0, [0]);
+
+    const foundSession = await sessionManager.getSessionById(0);
+    assertEquals(foundSession, null);
+
+    await sessionManager.deleteSession(1);
+    assertSpyCallArgs(hasSessionStub, 1, [1]);
+
+    const foundSession2 = await sessionManager.getSessionById(1);
+    assertEquals(foundSession2, null);
   });
 });

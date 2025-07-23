@@ -20,6 +20,10 @@ class SessionManager {
     return await this.sessionCollection.findOne({ _id: sessionId });
   }
 
+  async hasSession(sessionId: number): Promise<boolean> {
+    return (await this.sessionCollection.findOne({ _id: sessionId })) !== null;
+  }
+
   private async hasNoUser(userId: number): Promise<boolean> {
     return !(await this.userCollection.findOne({ _id: userId }));
   }
@@ -33,6 +37,15 @@ class SessionManager {
 
     return (await this.sessionCollection.insertOne(session))
       .insertedId as number;
+  }
+
+  async deleteSession(sessionId: number): Promise<boolean> {
+    if (!(await this.hasSession(sessionId))) {
+      throw new Error("Session not found!");
+    }
+
+    return (await this.sessionCollection.deleteOne({ _id: sessionId }))
+      .acknowledged;
   }
 }
 
