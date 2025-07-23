@@ -37,6 +37,11 @@ interface User {
   password: string;
 }
 
+interface Session {
+  _id: number;
+  user_id: number;
+}
+
 interface TodoJSON {
   todo_id: number;
   user_id: number;
@@ -53,6 +58,7 @@ interface AppVariables {
 export type {
   AppContext,
   AppVariables,
+  Session,
   Student,
   Task,
   TaskJSON,
