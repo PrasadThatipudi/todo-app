@@ -4,12 +4,14 @@ import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 import { Collection, MongoClient } from "mongodb";
-import { Task, Todo, TodoJSON } from "../../src/types.ts";
+import { Task, Todo, TodoJSON, User } from "../../src/types.ts";
 import { TaskManager } from "../../src/models/task-manager.ts";
+import { UserManager } from "../../src/models/user-manager.ts";
 
 let client: MongoClient;
 let todoCollection: Collection<Todo>;
 let taskCollection: Collection<Task>;
+let userCollection: Collection<User>;
 const userId = 0;
 
 beforeEach(async () => {
@@ -18,14 +20,17 @@ beforeEach(async () => {
   const database = client.db("test");
   todoCollection = database.collection("todos");
   taskCollection = database.collection("tasks");
+  userCollection = database.collection("users");
 
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
+  await userCollection.deleteMany({});
 });
 
 afterEach(async () => {
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
+  await userCollection.deleteMany({});
   await client.db("test").dropDatabase();
   await client.close();
 });
@@ -37,12 +42,19 @@ const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
 });
 
 const silentLogger = () => {};
+const testEncrypt = (password: string) => password;
 
 describe("serveTodos", () => {
   it("should return all todos as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const todo = createTodo(0, "Test Todo", 0);
 
@@ -81,7 +93,13 @@ describe("handleAddTodo", () => {
   it("should add a new todo and return it as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const todoManagerAdd = stub(
       todoManager,
@@ -120,7 +138,13 @@ describe("handleAddTodo", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const todo1 = createTodo(0, "First Todo", 0);
     const todo2 = createTodo(1, "Second Todo", 0);
@@ -176,7 +200,13 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is missing", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -193,7 +223,13 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is not a string", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -210,7 +246,13 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is empty string", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {
@@ -227,7 +269,13 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is empty after trim", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const appContext = { todoManager, taskManager, logger: silentLogger };
+    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      logger: silentLogger,
+    };
 
     const app = createApp(appContext);
     const response = await app.request("/todos", {

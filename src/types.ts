@@ -1,5 +1,6 @@
 import { TaskManager } from "./models/task-manager.ts";
 import { TodoManager } from "./models/todo-manager.ts";
+import { UserManager } from "./models/user-manager.ts";
 
 interface Student {
   id: number;
@@ -9,6 +10,7 @@ interface Student {
 interface AppContext {
   todoManager: TodoManager;
   taskManager: TaskManager;
+  userManager: UserManager;
   logger?: (message: string) => void;
 }
 interface TaskJSON {
@@ -52,6 +54,7 @@ interface TodoJSON {
 interface AppVariables {
   todoManager: TodoManager;
   taskManager: TaskManager;
+  userManager: UserManager;
   userId: number;
 }
 
