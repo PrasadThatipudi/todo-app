@@ -1,10 +1,10 @@
 import { Context } from "hono";
+import { setCookie } from "hono/cookie";
 import { AppVariables } from "../types.ts";
-import { MongoServerError } from "mongodb";
 
 const handleSignUp = async (ctx: Context<{ Variables: AppVariables }>) => {
   const body = await ctx.req.json();
-  if (!body.username || !body.password) {
+  if (body.username === undefined || body.password === undefined) {
     return ctx.json({ message: "Username and password are required" }, 400);
   }
 
@@ -14,7 +14,7 @@ const handleSignUp = async (ctx: Context<{ Variables: AppVariables }>) => {
   try {
     await userManager.createUser(username, password);
   } catch (error) {
-    if (error instanceof MongoServerError && error.code === 11000) {
+    if (error instanceof Error && error.cause === "DuplicateUser") {
       return ctx.json({ message: "User already exists" }, 409);
     }
 
@@ -26,4 +26,26 @@ const handleSignUp = async (ctx: Context<{ Variables: AppVariables }>) => {
   return ctx.json({ message: "User created successfully" }, 201);
 };
 
-export { handleSignUp };
+const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
+  const body = await ctx.req.json();
+  if (!body.username || !body.password) {
+    return ctx.json({ message: "Username and password are required" }, 400);
+  }
+  const { username, password } = body;
+  if (username.trim() === "" || password.trim() === "") {
+    return ctx.json({ message: "Username and password are required" }, 400);
+  }
+
+  const userId = ctx.get("userId");
+  const sessionManager = ctx.get("sessionManager");
+  const userManager = ctx.get("userManager");
+  if (!(await userManager.verifyPassword(userId, password))) {
+    return ctx.json({ message: "Invalid password" }, 409);
+  }
+
+  await sessionManager.createSession(userId);
+  setCookie(ctx, "sessionId", "0");
+  return ctx.json({ message: "Login successful" }, 201);
+};
+
+export { handleLogin, handleSignUp };

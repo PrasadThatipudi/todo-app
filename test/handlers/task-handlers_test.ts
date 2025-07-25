@@ -3,20 +3,23 @@ import createApp from "../../src/app.ts";
 import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
-import { Task, Todo, User } from "../../src/types.ts";
+import { Session, Task, Todo, User } from "../../src/types.ts";
 import { Collection, MongoClient } from "mongodb";
 import { TaskManager } from "../../src/models/task-manager.ts";
 import { UserManager } from "../../src/models/user-manager.ts";
+import { SessionManager } from "../../src/models/session-manager.ts";
 
 let client: MongoClient;
 let todoCollection: Collection<Todo>;
 let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
+let sessionCollection: Collection<Session>;
 const userId = 0;
 const todoId = 0;
 
 const silentLogger = () => {};
 const testEncrypt = (password: string) => password;
+const verify = () => false;
 
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
@@ -25,16 +28,19 @@ beforeEach(async () => {
   todoCollection = database.collection("todos");
   taskCollection = database.collection("tasks");
   userCollection = database.collection("users");
+  sessionCollection = database.collection("sessions");
 
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
+  await sessionCollection.deleteMany({});
 });
 
 afterEach(async () => {
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
+  await sessionCollection.deleteMany({});
   await client.db("test").dropDatabase();
   await client.close();
 });
@@ -51,10 +57,21 @@ describe("handleAddTask", () => {
   it("should add a task and return task json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -94,10 +111,21 @@ describe("handleAddTask", () => {
   it("should respond with 404 if todoId is not exist", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -123,7 +151,17 @@ describe("handleAddTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
 
     const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
     const todoId2 = await todoManager.addTodo(userId, "Test Todo 2");
@@ -131,6 +169,7 @@ describe("handleAddTask", () => {
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -177,10 +216,21 @@ describe("handleAddTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -228,13 +278,24 @@ describe("handleToggleTask", () => {
   it("should respond with 404 if todo is not exist with the given todoId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const todoId = 0;
     const taskId = 0;
 
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -253,10 +314,21 @@ describe("handleToggleTask", () => {
   it("should respond with 404 if task is not exist with the given todoId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -283,10 +355,21 @@ describe("handleToggleTask", () => {
   it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -314,10 +397,21 @@ describe("handleToggleTask", () => {
   it("should return task if task status toggled successfully", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -369,10 +463,21 @@ describe("handleToggleTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -419,10 +524,21 @@ describe("handleToggleTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -471,10 +587,21 @@ describe("handleDeleteTask", () => {
   it("should respond with 404 if todo is not exist with the given todoId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -496,12 +623,23 @@ describe("handleDeleteTask", () => {
   it("should respond with 404 if task is not exist with the given todoId and taskId", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const todoId = await todoManager.addTodo(userId, "Test Todo");
 
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -520,10 +658,21 @@ describe("handleDeleteTask", () => {
   it("should delete task and return true if deleted successfully", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -553,10 +702,21 @@ describe("handleDeleteTask", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -598,10 +758,21 @@ describe("handleDeleteTask", () => {
 
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };

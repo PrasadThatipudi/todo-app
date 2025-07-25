@@ -5,9 +5,18 @@ import { UserManager } from "../../src/models/user-manager.ts";
 import { assert } from "node:console";
 import { assertEquals } from "@std/assert/equals";
 import { assertRejects } from "@std/assert";
+import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
 let client: MongoClient;
 let userCollection: Collection<User>;
+
+const testEncrypt = (password: string): string => password;
+const idGenerator = (start: number) => () => start++;
+const createUser = (
+  id: number,
+  username: string,
+  password: string = "test123",
+): User => ({ _id: id, username, password });
 
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
@@ -23,10 +32,11 @@ afterEach(async () => {
 
 describe("init", () => {
   it("should initialize the user manager with userCollection, idGenerator & encryptPassword", () => {
-    const encrypt = (password: string) => password;
+    const encrypt = testEncrypt;
     const userManager: UserManager = UserManager.init(
       () => 0,
       encrypt,
+      () => false,
       userCollection,
     );
 
@@ -38,7 +48,8 @@ describe("getUserById", () => {
   it("should return null when user is not present", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
     const foundUser = await userManager.getUserById(0);
@@ -51,7 +62,8 @@ describe("getUserById", () => {
 
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
     const foundUser = await userManager.getUserById(1);
@@ -59,11 +71,96 @@ describe("getUserById", () => {
   });
 });
 
-describe("addUser", () => {
+describe("hasUser", () => {
+  it("should return false if the userId is not exists", async () => {
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    assertEquals(await userManager.hasUser(999), false);
+    assertEquals(await userManager.hasUser(99), false);
+  });
+
+  it("should return true if the userId is exists", async () => {
+    let id = 0;
+    const userManager = UserManager.init(
+      () => id++,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    const findOneStub = stub(
+      userCollection,
+      "findOne",
+      () =>
+        Promise.resolve({ _id: 0, username: "testUser", password: "test123" }),
+    );
+    const userId1 = 0;
+
+    await userCollection.insertOne(createUser(userId1, "test1"));
+    assertEquals(userId1, 0);
+    assertEquals(await userManager.hasUser(userId1), true);
+    assertSpyCallArgs(findOneStub, 0, [{ _id: userId1 }]);
+
+    const userId2 = 1;
+    await userCollection.insertOne(createUser(userId2, "test2"));
+
+    assertEquals(userId2, 1);
+    assertEquals(await userManager.hasUser(userId2), true);
+    assertSpyCallArgs(findOneStub, 1, [{ _id: userId2 }]);
+  });
+
+  it("should return false if username is not exists", async () => {
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    assertEquals(await userManager.hasUser("non-existing-user"), false);
+    assertEquals(await userManager.hasUser("non-existing-user2"), false);
+  });
+
+  it("should return true if username is already exists", async () => {
+    const userManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    const findOneStub = stub(
+      userCollection,
+      "findOne",
+      () =>
+        Promise.resolve({ _id: 0, username: "test-user", password: "test123" }),
+    );
+
+    const userId1 = 0;
+    await userCollection.insertOne(createUser(0, "test-user"));
+    assertEquals(userId1, 0);
+    assertEquals(await userManager.hasUser("test-user"), true);
+    assertSpyCallArgs(findOneStub, 0, [{ username: "test-user" }]);
+
+    const userId2 = 1;
+    await userCollection.insertOne(createUser(1, "test-user2"));
+    assertEquals(userId2, 1);
+    assertEquals(await userManager.hasUser("test-user2"), true);
+    assertSpyCallArgs(findOneStub, 1, [{ username: "test-user2" }]);
+  });
+});
+
+describe("createUser", () => {
   it("should throw an error when username is empty", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -71,13 +168,14 @@ describe("addUser", () => {
       await userManager.createUser("", "test123");
     }, Error);
 
-    assertEquals(error.message, "Username cannot be empty!");
+    assertEquals(error.message, "Username and password cannot be empty!");
   });
 
   it("should throw an error when password is empty", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -85,13 +183,14 @@ describe("addUser", () => {
       await userManager.createUser("testUser", "");
     }, Error);
 
-    assertEquals(error.message, "Password cannot be empty!");
+    assertEquals(error.message, "Username and password cannot be empty!");
   });
 
   it("should throw an error if username is just whitespace", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -99,13 +198,14 @@ describe("addUser", () => {
       await userManager.createUser("   ", "test123");
     }, Error);
 
-    assertEquals(error.message, "Username cannot be empty!");
+    assertEquals(error.message, "Username and password cannot be empty!");
   });
 
   it("should throw an error if password is just whitespace", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -113,13 +213,14 @@ describe("addUser", () => {
       await userManager.createUser("testUser", "   ");
     }, Error);
 
-    assertEquals(error.message, "Password cannot be empty!");
+    assertEquals(error.message, "Username and password cannot be empty!");
   });
 
   it("should throw an error if username contains space", async () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -135,7 +236,8 @@ describe("addUser", () => {
 
     const userManager: UserManager = UserManager.init(
       () => 0,
-      (password: string) => password,
+      testEncrypt,
+      () => false,
       userCollection,
     );
 
@@ -149,11 +251,12 @@ describe("addUser", () => {
   it("should use the idGenerator to generate a unique user ID", async () => {
     let id = 0;
     const idGenerator = () => id++;
-    const encrypt = (password: string) => password;
+    const encrypt = testEncrypt;
 
     const userManager: UserManager = UserManager.init(
       idGenerator,
       encrypt,
+      () => false,
       userCollection,
     );
 
@@ -175,6 +278,7 @@ describe("addUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 0,
       encrypt,
+      () => false,
       userCollection,
     );
 
@@ -182,5 +286,82 @@ describe("addUser", () => {
     const addedUser = await userManager.getUserById(0);
 
     assertEquals(addedUser?.password, "encrypted-test123");
+  });
+
+  it("should throw an error if username is already exists", async () => {
+    const userManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    const userId = await userManager.createUser("test", "test123");
+    assertEquals(userId, 0);
+
+    const error = await assertRejects(async () => {
+      await userManager.createUser("test", "test123");
+    }, Error);
+
+    assertEquals(error.message, "Username is already exists!");
+  });
+});
+
+describe("verifyPassword", () => {
+  it("should throw an error if user is not found", async () => {
+    const userManager: UserManager = UserManager.init(
+      () => 1,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+
+    const hasUserStub = stub(
+      userManager,
+      "hasUser",
+      () => Promise.resolve(false),
+    );
+
+    const error1 = await assertRejects(async () => {
+      await userManager.verifyPassword(0, "test123");
+    }, Error);
+
+    assertEquals(error1.message, "User not found!");
+    assertSpyCallArgs(hasUserStub, 0, [0]);
+
+    const error2 = await assertRejects(async () => {
+      await userManager.verifyPassword(1, "test123");
+    }, Error);
+
+    assertEquals(error2.message, "User not found!");
+    assertSpyCallArgs(hasUserStub, 1, [1]);
+  });
+
+  it("should use verify function of UserManager to verify password", async () => {
+    const argsOfPasswordVerifier: [string, string][] = [];
+
+    const passwordVerifier = (hash: string, password: string) => {
+      argsOfPasswordVerifier.push([hash, password]);
+      return hash === password;
+    };
+
+    const userManager: UserManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      passwordVerifier,
+      userCollection,
+    );
+
+    const userId1 = await userManager.createUser("test", "test123");
+    assertEquals(userId1, 0);
+
+    assertEquals(await userManager.verifyPassword(userId1, "test123"), true);
+    assertEquals(argsOfPasswordVerifier[0], ["test123", "test123"]);
+
+    const userId2 = await userManager.createUser("test2", "test456");
+    assertEquals(userId2, 1);
+
+    assertEquals(await userManager.verifyPassword(userId2, "test456"), true);
+    assertEquals(argsOfPasswordVerifier[1], ["test456", "test456"]);
   });
 });

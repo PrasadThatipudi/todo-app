@@ -4,15 +4,18 @@ import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assertEquals } from "@std/assert/equals";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 import { Collection, MongoClient } from "mongodb";
-import { Task, Todo, TodoJSON, User } from "../../src/types.ts";
+import { Session, Task, Todo, TodoJSON, User } from "../../src/types.ts";
 import { TaskManager } from "../../src/models/task-manager.ts";
 import { UserManager } from "../../src/models/user-manager.ts";
+import { SessionManager } from "../../src/models/session-manager.ts";
 
 let client: MongoClient;
 let todoCollection: Collection<Todo>;
 let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
+let sessionCollection: Collection<Session>;
 const userId = 0;
+const verify = () => false;
 
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
@@ -21,16 +24,20 @@ beforeEach(async () => {
   todoCollection = database.collection("todos");
   taskCollection = database.collection("tasks");
   userCollection = database.collection("users");
+  sessionCollection = database.collection("sessions");
 
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
+  await sessionCollection.deleteMany({});
 });
 
 afterEach(async () => {
   await todoCollection.deleteMany({});
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
+  await sessionCollection.deleteMany({});
+
   await client.db("test").dropDatabase();
   await client.close();
 });
@@ -48,11 +55,22 @@ describe("serveTodos", () => {
   it("should return all todos as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
       userManager,
+      sessionManager,
       logger: silentLogger,
     };
 
@@ -93,11 +111,22 @@ describe("handleAddTodo", () => {
   it("should add a new todo and return it as json", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
       userManager,
+      sessionManager,
       logger: silentLogger,
     };
 
@@ -138,10 +167,21 @@ describe("handleAddTodo", () => {
     const idGenerator = (start: number) => () => start++;
     const todoManager = TodoManager.init(idGenerator(0), todoCollection);
     const taskManager = TaskManager.init(idGenerator(0), taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -200,10 +240,21 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is missing", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -223,10 +274,21 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is not a string", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -246,10 +308,21 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is empty string", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };
@@ -269,10 +342,21 @@ describe("handleAddTodo", () => {
   it("should return 400 if title is empty after trim", async () => {
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const taskManager = TaskManager.init(() => 0, taskCollection);
-    const userManager = UserManager.init(() => 0, testEncrypt, userCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
     const appContext = {
       todoManager,
       taskManager,
+      sessionManager,
       userManager,
       logger: silentLogger,
     };

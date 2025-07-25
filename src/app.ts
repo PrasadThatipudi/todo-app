@@ -7,15 +7,21 @@ import {
   handleDeleteTask,
   handleToggleTask,
 } from "./handlers/task-handlers.ts";
-import { handleSignUp } from "./handlers/authentication-handlers.ts";
+import {
+  handleLogin,
+  handleSignUp,
+} from "./handlers/authentication-handlers.ts";
 
 const setupAppContext =
   (appContext: AppContext): MiddlewareHandler =>
   async (ctx: Context, next: Next) => {
-    ctx.set("todoManager", appContext.todoManager);
-    ctx.set("taskManager", appContext.taskManager);
+    const { todoManager, taskManager, userManager, sessionManager } =
+      appContext;
+    ctx.set("todoManager", todoManager);
+    ctx.set("taskManager", taskManager);
     ctx.set("userId", 0);
-    ctx.set("userManager", appContext.userManager);
+    ctx.set("userManager", userManager);
+    ctx.set("sessionManager", sessionManager);
 
     return await next();
   };
@@ -56,6 +62,7 @@ const createApp = (appContext: AppContext) => {
   app.use(setupAppContext(appContext));
 
   app.post("/signup", handleSignUp);
+  app.post("/login", handleLogin);
   app.get("/todos", serveTodos);
 
   app.post("/todos", handleAddTodo);
