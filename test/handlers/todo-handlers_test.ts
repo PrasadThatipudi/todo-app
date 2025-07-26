@@ -15,6 +15,7 @@ let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
 let sessionCollection: Collection<Session>;
 const userId = 0;
+const sessionId = 0;
 const verify = () => Promise.resolve(false);
 
 beforeEach(async () => {
@@ -30,6 +31,11 @@ beforeEach(async () => {
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
   await sessionCollection.deleteMany({});
+
+  const user = { _id: userId, username: "test", password: "test" };
+  const session = { _id: sessionId, user_id: userId };
+  await userCollection.insertOne(user);
+  await sessionCollection.insertOne(session);
 });
 
 afterEach(async () => {
@@ -98,7 +104,9 @@ describe("serveTodos", () => {
     ];
 
     const app = createApp(appContext);
-    const response = await app.request("/todos");
+    const response = await app.request("/todos", {
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
 
     assertEquals(response.status, 200);
     assertSpyCallArgs(todoManagerJSON, 0, [0]);
@@ -151,7 +159,10 @@ describe("handleAddTodo", () => {
     const response = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response.status, 201);
@@ -202,7 +213,10 @@ describe("handleAddTodo", () => {
     const response1 = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "First Todo" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response1.status, 201);
@@ -221,7 +235,10 @@ describe("handleAddTodo", () => {
     const response2 = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "Second Todo" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response2.status, 201);
@@ -263,7 +280,10 @@ describe("handleAddTodo", () => {
     const response = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({}),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response.status, 400);
@@ -297,7 +317,10 @@ describe("handleAddTodo", () => {
     const response = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: 123 }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response.status, 400);
@@ -331,7 +354,10 @@ describe("handleAddTodo", () => {
     const response = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response.status, 400);
@@ -365,7 +391,10 @@ describe("handleAddTodo", () => {
     const response = await app.request("/todos", {
       method: "POST",
       body: JSON.stringify({ title: "   " }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response.status, 400);

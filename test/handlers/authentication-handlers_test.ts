@@ -499,3 +499,93 @@ describe("login", () => {
     assertSpyCallArgs(verifyPasswordStub, 0, [0, "password123"]);
   });
 });
+
+describe("user authentication", () => {
+  it("should validate cookies", async () => {
+    const verify = (hash: string, password: string) =>
+      Promise.resolve(hash === password);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const appContext: AppContext = {
+      taskManager,
+      todoManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const userId = await userManager.createUser("user1", "password123");
+    assertEquals(userId, 0);
+
+    const loginReq = new Request("http://localhost/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "user1", password: "password123" }),
+    });
+    const response2 = await app.request(loginReq);
+    assertEquals(response2.status, 201);
+
+    const authenticatedReq = new Request("http://localhost/todos", {
+      method: "GET",
+      headers: {
+        Cookie: `sessionId=0`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const response3 = await app.request(authenticatedReq);
+    assertEquals(response3.status, 200);
+  });
+
+  it("should return 401 if session is invalid", async () => {
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const appContext: AppContext = {
+      taskManager,
+      todoManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    // Create a user and a session
+    await userManager.createUser("user1", "password123");
+
+    // Use an invalid session ID
+    const authenticatedReq = new Request("http://localhost/todos", {
+      method: "GET",
+      headers: {
+        Cookie: `sessionId=invalidSessionId`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const response3 = await app.request(authenticatedReq);
+    assertEquals(response3.status, 401);
+    assertEquals(await response3.json(), { message: "Unauthorized" });
+  });
+});

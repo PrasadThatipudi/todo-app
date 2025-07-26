@@ -31,14 +31,14 @@ class UserManager {
   }
 
   async getIdByUsername(username: string): Promise<number | null> {
-    return (
-      (
-        await this.userCollection.findOne(
-          { username },
-          { projection: { _id: 1, username: 0 } },
-        )
-      )?._id || null
-    );
+    const userId = (
+      await this.userCollection.findOne(
+        { username },
+        { projection: { _id: 1 } },
+      )
+    )?._id;
+
+    return userId !== undefined ? userId : null;
   }
 
   async hasUser(lookUp: number | string): Promise<boolean> {

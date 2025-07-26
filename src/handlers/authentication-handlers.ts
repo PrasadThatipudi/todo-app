@@ -36,9 +36,10 @@ const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
     return ctx.json({ message: "Username and password are required" }, 400);
   }
 
-  const userId = ctx.get("userId");
   const sessionManager = ctx.get("sessionManager");
   const userManager = ctx.get("userManager");
+
+  const userId = (await userManager.getIdByUsername(username))!;
   if (!(await userManager.verifyPassword(userId, password))) {
     return ctx.json({ message: "Invalid password" }, 409);
   }

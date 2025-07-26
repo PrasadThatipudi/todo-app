@@ -78,7 +78,7 @@ describe("getUserById", () => {
 describe("getIdByUsername", () => {
   it("should return null if username does not exist", async () => {
     const userManager: UserManager = UserManager.init(
-      () => 1,
+      () => 0,
       testEncrypt,
       verify,
       userCollection,
@@ -86,8 +86,9 @@ describe("getIdByUsername", () => {
     const userId = await userManager.getIdByUsername("non-existing-user");
     assertEquals(userId, null);
   });
+
   it("should return the user ID if username exists", async () => {
-    const user1: User = { _id: 1, username: "TestUser", password: "test123" };
+    const user1: User = { _id: 0, username: "TestUser", password: "test123" };
     await userCollection.insertOne(user1);
     const userManager: UserManager = UserManager.init(
       () => 1,
@@ -96,16 +97,16 @@ describe("getIdByUsername", () => {
       userCollection,
     );
     const user1Id = await userManager.getIdByUsername("TestUser");
-    assertEquals(user1Id, 1);
+    assertEquals(user1Id, 0);
 
     const user2: User = {
-      _id: 2,
+      _id: 1,
       username: "AnotherUser",
       password: "test456",
     };
     await userCollection.insertOne(user2);
     const user2Id = await userManager.getIdByUsername("AnotherUser");
-    assertEquals(user2Id, 2);
+    assertEquals(user2Id, 1);
   });
 });
 

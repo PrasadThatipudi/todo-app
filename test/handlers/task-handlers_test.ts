@@ -15,6 +15,7 @@ let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
 let sessionCollection: Collection<Session>;
 const userId = 0;
+const sessionId = 0;
 const todoId = 0;
 
 const silentLogger = () => {};
@@ -34,6 +35,11 @@ beforeEach(async () => {
   await taskCollection.deleteMany({});
   await userCollection.deleteMany({});
   await sessionCollection.deleteMany({});
+
+  const user: User = { _id: userId, username: "tes", password: "test" };
+  const session: Session = { _id: sessionId, user_id: userId };
+  await userCollection.insertOne(user);
+  await sessionCollection.insertOne(session);
 });
 
 afterEach(async () => {
@@ -92,7 +98,10 @@ describe("handleAddTask", () => {
     const response = await app.request(`/todos/${todoId}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test Task" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
     assertEquals(response.status, 201);
     const jsonResponse = await response.json();
@@ -139,7 +148,10 @@ describe("handleAddTask", () => {
     const response = await app.request(`/todos/${todoId}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test task", todoId: 0 }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
     assertEquals(response.status, 404);
     const jsonResponse = await response.json();
@@ -188,12 +200,18 @@ describe("handleAddTask", () => {
     const response1 = await app.request(`/todos/${todoId1}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test Task 1" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
     const response2 = await app.request(`/todos/${todoId2}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test Task 2" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
 
     assertEquals(response1.status, 201);
@@ -253,12 +271,18 @@ describe("handleAddTask", () => {
     const response1 = await app.request(`/todos/${todoId}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test Task 1" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
     const response2 = await app.request(`/todos/${todoId}/tasks`, {
       method: "POST",
       body: JSON.stringify({ description: "Test Task 2" }),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
     });
     assertEquals(response1.status, 201);
     assertEquals(response2.status, 201);
@@ -303,6 +327,7 @@ describe("handleToggleTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 404);
@@ -342,6 +367,7 @@ describe("handleToggleTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/0`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 404);
@@ -385,6 +411,7 @@ describe("handleToggleTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/999`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 404);
@@ -440,6 +467,7 @@ describe("handleToggleTask", () => {
 
     const response1 = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response1.status, 200);
@@ -451,6 +479,7 @@ describe("handleToggleTask", () => {
     // Simulate a second toggle to ensure the task can be toggled back
     const response2 = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response2.status, 200);
     assertSpyCallArgs(toggleTaskStub, 1, [0, todoId, taskId]);
@@ -501,6 +530,7 @@ describe("handleToggleTask", () => {
     // Toggle first task
     const response1 = await app.request(`/todos/${todoId}/tasks/${task1Id}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response1.status, 200);
     assertSpyCallArgs(toggleTaskStub, 0, [0, todoId, task1Id]);
@@ -511,6 +541,7 @@ describe("handleToggleTask", () => {
     // Toggle second task
     const response2 = await app.request(`/todos/${todoId}/tasks/${task2Id}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response2.status, 200);
@@ -564,6 +595,7 @@ describe("handleToggleTask", () => {
     // Toggle first task
     const response1 = await app.request(`/todos/${todoId1}/tasks/${task1Id}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response1.status, 200);
     assertSpyCallArgs(toggleTaskStub, 0, [0, todoId1, task1Id]);
@@ -574,6 +606,7 @@ describe("handleToggleTask", () => {
     // Toggle second task
     const response2 = await app.request(`/todos/${todoId2}/tasks/${task2Id}`, {
       method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response2.status, 200);
     assertSpyCallArgs(toggleTaskStub, 1, [0, todoId2, task2Id]);
@@ -612,6 +645,7 @@ describe("handleDeleteTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 404);
@@ -647,6 +681,7 @@ describe("handleDeleteTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/0`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 404);
@@ -690,6 +725,7 @@ describe("handleDeleteTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 200);
@@ -737,6 +773,7 @@ describe("handleDeleteTask", () => {
     // Delete first task
     const response1 = await app.request(`/todos/${todoId1}/tasks/${task1Id}`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response1.status, 200);
     assertSpyCallArgs(deleteTaskStub, 0, [0, todoId1, task1Id]);
@@ -746,6 +783,7 @@ describe("handleDeleteTask", () => {
     // Delete second task
     const response2 = await app.request(`/todos/${todoId2}/tasks/${task2Id}`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
     assertEquals(response2.status, 200);
     assertSpyCallArgs(deleteTaskStub, 1, [0, todoId2, task2Id]);
@@ -789,6 +827,7 @@ describe("handleDeleteTask", () => {
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
       method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
     });
 
     assertEquals(response.status, 200);

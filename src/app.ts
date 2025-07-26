@@ -11,6 +11,7 @@ import {
   handleLogin,
   handleSignUp,
 } from "./handlers/authentication-handlers.ts";
+import { getCookie } from "hono/cookie";
 
 const setupAppContext =
   (appContext: AppContext): MiddlewareHandler =>
@@ -19,7 +20,6 @@ const setupAppContext =
       appContext;
     ctx.set("todoManager", todoManager);
     ctx.set("taskManager", taskManager);
-    ctx.set("userId", 0);
     ctx.set("userManager", userManager);
     ctx.set("sessionManager", sessionManager);
 
@@ -55,6 +55,24 @@ const checkTaskExistence: MiddlewareHandler = async (
   return await next();
 };
 
+const authenticateUserAndSetUserContext: MiddlewareHandler = async (
+  ctx: Context<{ Variables: AppVariables }>,
+  next: Next,
+) => {
+  const sessionId = Number(getCookie(ctx, "sessionId"));
+  const sessionManager = ctx.get("sessionManager");
+
+  if (!(await sessionManager.hasSession(sessionId))) {
+    return ctx.json({ message: "Unauthorized" }, 401);
+  }
+
+  const session = (await sessionManager.getSessionById(sessionId))!;
+
+  ctx.set("userId", session.user_id);
+
+  return await next();
+};
+
 const createApp = (appContext: AppContext) => {
   const app = new Hono<{ Variables: AppVariables }>();
 
@@ -63,6 +81,7 @@ const createApp = (appContext: AppContext) => {
 
   app.post("/signup", handleSignUp);
   app.post("/login", handleLogin);
+  app.use(authenticateUserAndSetUserContext);
   app.get("/todos", serveTodos);
 
   app.post("/todos", handleAddTodo);
