@@ -71,6 +71,40 @@ describe("getUserById", () => {
   });
 });
 
+describe("getIdByUsername", () => {
+  it("should return null if username does not exist", async () => {
+    const userManager: UserManager = UserManager.init(
+      () => 1,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+    const userId = await userManager.getIdByUsername("non-existing-user");
+    assertEquals(userId, null);
+  });
+  it("should return the user ID if username exists", async () => {
+    const user1: User = { _id: 1, username: "TestUser", password: "test123" };
+    await userCollection.insertOne(user1);
+    const userManager: UserManager = UserManager.init(
+      () => 1,
+      testEncrypt,
+      () => false,
+      userCollection,
+    );
+    const user1Id = await userManager.getIdByUsername("TestUser");
+    assertEquals(user1Id, 1);
+
+    const user2: User = {
+      _id: 2,
+      username: "AnotherUser",
+      password: "test456",
+    };
+    await userCollection.insertOne(user2);
+    const user2Id = await userManager.getIdByUsername("AnotherUser");
+    assertEquals(user2Id, 2);
+  });
+});
+
 describe("hasUser", () => {
   it("should return false if the userId is not exists", async () => {
     const userManager = UserManager.init(

@@ -30,6 +30,17 @@ class UserManager {
     return await this.userCollection.findOne({ _id: userId });
   }
 
+  async getIdByUsername(username: string): Promise<number | null> {
+    return (
+      (
+        await this.userCollection.findOne(
+          { username },
+          { projection: { _id: 1, username: 0 } },
+        )
+      )?._id || null
+    );
+  }
+
   async hasUser(lookUp: number | string): Promise<boolean> {
     const lookUpKey = typeof lookUp === "number" ? "_id" : "username";
 
