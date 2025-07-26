@@ -1,6 +1,7 @@
 {
   "tasks": {
     "dev": "deno run -A --watch ./server.ts",
+    "check": "deno check",
     "test": "deno test -A",
     "lint": "deno lint",
     "format": "deno fmt",
@@ -10,7 +11,7 @@
       "dependencies": ["test-coverage"]
     },
     "dev-check": {
-      "dependencies": ["coverage", "format", "lint"]
+      "dependencies": ["check", "coverage", "format", "lint"]
     }
   },
   "imports": {

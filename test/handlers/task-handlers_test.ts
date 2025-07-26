@@ -18,8 +18,8 @@ const userId = 0;
 const todoId = 0;
 
 const silentLogger = () => {};
-const testEncrypt = (password: string) => password;
-const verify = () => false;
+const testEncrypt = (password: string) => Promise.resolve(password);
+const verify = () => Promise.resolve(false);
 
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");

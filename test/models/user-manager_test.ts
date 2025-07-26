@@ -10,7 +10,11 @@ import { assertSpyCallArgs, stub } from "@std/testing/mock";
 let client: MongoClient;
 let userCollection: Collection<User>;
 
-const testEncrypt = (password: string): string => password;
+const testEncrypt = (password: string): Promise<string> =>
+  Promise.resolve(password);
+const verify = (_hash: string, _password: string): Promise<boolean> =>
+  Promise.resolve(false);
+
 const idGenerator = (start: number) => () => start++;
 const createUser = (
   id: number,
@@ -36,7 +40,7 @@ describe("init", () => {
     const userManager: UserManager = UserManager.init(
       () => 0,
       encrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -49,7 +53,7 @@ describe("getUserById", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
     const foundUser = await userManager.getUserById(0);
@@ -63,7 +67,7 @@ describe("getUserById", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
     const foundUser = await userManager.getUserById(1);
@@ -76,7 +80,7 @@ describe("getIdByUsername", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
     const userId = await userManager.getIdByUsername("non-existing-user");
@@ -88,7 +92,7 @@ describe("getIdByUsername", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
     const user1Id = await userManager.getIdByUsername("TestUser");
@@ -110,7 +114,7 @@ describe("hasUser", () => {
     const userManager = UserManager.init(
       () => 0,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -123,7 +127,7 @@ describe("hasUser", () => {
     const userManager = UserManager.init(
       () => id++,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -152,7 +156,7 @@ describe("hasUser", () => {
     const userManager = UserManager.init(
       () => 0,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -164,7 +168,7 @@ describe("hasUser", () => {
     const userManager = UserManager.init(
       idGenerator(0),
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -194,7 +198,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -209,7 +213,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -224,7 +228,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -239,7 +243,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -254,7 +258,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -271,7 +275,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       () => 0,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -290,7 +294,7 @@ describe("createUser", () => {
     const userManager: UserManager = UserManager.init(
       idGenerator,
       encrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -308,11 +312,12 @@ describe("createUser", () => {
   });
 
   it("should encrypt the password before storing it", async () => {
-    const encrypt = (password: string) => `encrypted-${password}`;
+    const encrypt = (password: string) =>
+      Promise.resolve(`encrypted-${password}`);
     const userManager: UserManager = UserManager.init(
       () => 0,
       encrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -326,7 +331,7 @@ describe("createUser", () => {
     const userManager = UserManager.init(
       idGenerator(0),
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -346,7 +351,7 @@ describe("verifyPassword", () => {
     const userManager: UserManager = UserManager.init(
       () => 1,
       testEncrypt,
-      () => false,
+      verify,
       userCollection,
     );
 
@@ -376,7 +381,7 @@ describe("verifyPassword", () => {
 
     const passwordVerifier = (hash: string, password: string) => {
       argsOfPasswordVerifier.push([hash, password]);
-      return hash === password;
+      return Promise.resolve(hash === password);
     };
 
     const userManager: UserManager = UserManager.init(

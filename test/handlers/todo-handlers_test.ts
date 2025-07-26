@@ -15,7 +15,7 @@ let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
 let sessionCollection: Collection<Session>;
 const userId = 0;
-const verify = () => false;
+const verify = () => Promise.resolve(false);
 
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
@@ -49,7 +49,7 @@ const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
 });
 
 const silentLogger = () => {};
-const testEncrypt = (password: string) => password;
+const testEncrypt = (password: string) => Promise.resolve(password);
 
 describe("serveTodos", () => {
   it("should return all todos as json", async () => {

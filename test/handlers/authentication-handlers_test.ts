@@ -15,9 +15,6 @@ let taskCollection: Collection<Task>;
 let userCollection: Collection<User>;
 let sessionCollection: Collection<Session>;
 
-const silentLogger = () => {};
-const verify = () => false;
-
 beforeEach(async () => {
   client = new MongoClient("mongodb://localhost:27017");
   await client.connect();
@@ -42,7 +39,9 @@ afterEach(async () => {
   await client.close();
 });
 
-const testEncrypt = (password: string) => password;
+const silentLogger = () => {};
+const verify = () => Promise.resolve(false);
+const testEncrypt = (password: string) => Promise.resolve(password);
 
 describe("sign-up", () => {
   it("should throw an error if username or password is missing", async () => {
@@ -424,7 +423,6 @@ describe("login", () => {
   });
 
   it("should return 409 if password is wrong", async () => {
-    const verify = () => false;
     const taskManager = TaskManager.init(() => 0, taskCollection);
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const userManager = UserManager.init(
@@ -461,7 +459,6 @@ describe("login", () => {
   });
 
   it("should return 200 if username and password valid and create a session", async () => {
-    const verify = () => false;
     const taskManager = TaskManager.init(() => 0, taskCollection);
     const todoManager = TodoManager.init(() => 0, todoCollection);
     const userManager = UserManager.init(

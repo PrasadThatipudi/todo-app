@@ -4,18 +4,18 @@ import { User } from "../types.ts";
 class UserManager {
   constructor(
     private readonly idGenerator: () => number,
-    private readonly encryptPassword: (password: string) => string,
+    private readonly encryptPassword: (password: string) => Promise<string>,
     private readonly passwordVerifier: (
       hash: string,
       password: string,
-    ) => boolean,
+    ) => Promise<boolean>,
     private readonly userCollection: Collection<User>,
   ) {}
 
   static init(
     idGenerator: () => number,
-    encryptPassword: (password: string) => string,
-    passwordVerifier: (hash: string, password: string) => boolean,
+    encryptPassword: (password: string) => Promise<string>,
+    passwordVerifier: (hash: string, password: string) => Promise<boolean>,
     userCollection: Collection<User>,
   ): UserManager {
     return new UserManager(
@@ -66,7 +66,7 @@ class UserManager {
     const user: User = {
       _id: this.idGenerator(),
       username,
-      password: this.encryptPassword(password),
+      password: await this.encryptPassword(password),
     };
 
     return (await this.userCollection.insertOne(user)).insertedId;
