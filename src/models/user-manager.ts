@@ -53,6 +53,7 @@ class UserManager {
     if (!username.trim() || !password.trim()) {
       throw new Error("Username and password cannot be empty!");
     }
+
     if (username.includes(" ")) {
       throw new Error("Username cannot contain spaces!");
     }

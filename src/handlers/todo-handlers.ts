@@ -29,9 +29,11 @@ const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
   if (body.title === undefined) {
     return ctx.json({ message: "Title is required" }, 400);
   }
+
   if (typeof body.title !== "string") {
     return ctx.json({ message: "Title must be a string." }, 400);
   }
+
   if (body.title.trim() === "") {
     return ctx.json({ message: "Title should not be empty." }, 400);
   }

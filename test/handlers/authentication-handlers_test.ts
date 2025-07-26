@@ -458,6 +458,41 @@ describe("login", () => {
     assertEquals(await response2.json(), { message: "Invalid password" });
   });
 
+  it("should return 404 if user does not exist", async () => {
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const appContext: AppContext = {
+      taskManager,
+      todoManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+    const loginReq = new Request("http://localhost/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "nonexistent",
+        password: "password123",
+      }),
+    });
+    const response1 = await app.request(loginReq);
+    assertEquals(response1.status, 404);
+    assertEquals(await response1.json(), { message: "User not found" });
+  });
+
   it("should return 200 if username and password valid and create a session", async () => {
     const taskManager = TaskManager.init(() => 0, taskCollection);
     const todoManager = TodoManager.init(() => 0, todoCollection);

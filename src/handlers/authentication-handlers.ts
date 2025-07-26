@@ -31,6 +31,7 @@ const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
   if (!body.username || !body.password) {
     return ctx.json({ message: "Username and password are required" }, 400);
   }
+
   const { username, password } = body;
   if (username.trim() === "" || password.trim() === "") {
     return ctx.json({ message: "Username and password are required" }, 400);
@@ -40,6 +41,8 @@ const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
   const userManager = ctx.get("userManager");
 
   const userId = (await userManager.getIdByUsername(username))!;
+  if (userId === null) return ctx.json({ message: "User not found" }, 404);
+
   if (!(await userManager.verifyPassword(userId, password))) {
     return ctx.json({ message: "Invalid password" }, 409);
   }

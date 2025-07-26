@@ -29,9 +29,7 @@ class SessionManager {
   }
 
   async createSession(userId: number): Promise<number> {
-    if (await this.hasNoUser(userId)) {
-      throw new Error("User not found!");
-    }
+    if (await this.hasNoUser(userId)) throw new Error("User not found!");
 
     const session = { _id: this.idGenerator(), user_id: userId };
 

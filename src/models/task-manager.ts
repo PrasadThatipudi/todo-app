@@ -112,6 +112,7 @@ class TaskManager {
     if (!(await this.hasTask(userId, todoId, taskId))) {
       throw new Error("Task not found");
     }
+
     const deletionResult = await this.collection.deleteOne({
       user_id: userId,
       todo_id: todoId,
