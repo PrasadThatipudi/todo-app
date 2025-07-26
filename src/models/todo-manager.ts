@@ -19,13 +19,13 @@ class TodoManager {
 
   async getTodoById(userId: number, todoId: number): Promise<Todo | null> {
     return await this.todoCollection.findOne({
-      _id: todoId,
+      todo_id: todoId,
       user_id: userId,
     });
   }
 
   async hasTodo(userId: number, lookUp: number | string): Promise<boolean> {
-    const lookUpKey = typeof lookUp === "number" ? "_id" : "title";
+    const lookUpKey = typeof lookUp === "number" ? "todo_id" : "title";
 
     return (
       (await this.todoCollection.countDocuments({
@@ -43,13 +43,15 @@ class TodoManager {
       throw new Error("Todo with this title already exists");
     }
 
-    const insertionResult = await this.todoCollection.insertOne({
-      _id: this.todoIdGenerator(),
+    const todoId = this.todoIdGenerator();
+
+    await this.todoCollection.insertOne({
+      todo_id: todoId,
       user_id: userId,
       title: title,
     });
 
-    return insertionResult.insertedId as number;
+    return todoId;
   }
 
   async removeTodo(userId: number, todoId: number): Promise<boolean> {
@@ -60,7 +62,7 @@ class TodoManager {
     return (
       (
         await this.todoCollection.deleteOne({
-          _id: todoId,
+          todo_id: todoId,
           user_id: userId,
         })
       ).deletedCount === 1

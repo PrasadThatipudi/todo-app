@@ -33,7 +33,7 @@ class TaskManager {
       (await this.collection.findOne({
         user_id: userId,
         todo_id: todoId,
-        _id: taskId,
+        task_id: taskId,
       })) || null
     );
   }
@@ -47,7 +47,7 @@ class TaskManager {
     todoId: number,
     lookUpValue: number | string,
   ): Promise<boolean> {
-    const lookUpKey = this.isNumber(lookUpValue) ? "_id" : "description";
+    const lookUpKey = this.isNumber(lookUpValue) ? "task_id" : "description";
 
     const match = {
       user_id: userId,
@@ -72,17 +72,16 @@ class TaskManager {
     }
 
     const taskId = this.idGenerator();
-    const newTask = {
-      _id: taskId,
+    const newTask: Task = {
+      task_id: taskId,
       description,
       done: false,
       user_id: userId,
       todo_id: todoId,
     };
 
-    const insertedTask = await this.collection.insertOne(newTask);
-
-    return insertedTask.insertedId;
+    await this.collection.insertOne(newTask);
+    return taskId;
   }
 
   async toggleTaskDone(
@@ -97,7 +96,7 @@ class TaskManager {
     const task = await this.getTaskById(userId, todoId, taskId);
 
     const updateResult = await this.collection.updateOne(
-      { user_id: userId, todo_id: todoId, _id: taskId },
+      { user_id: userId, todo_id: todoId, task_id: taskId },
       { $set: { done: !task!.done } },
     );
 
@@ -116,7 +115,7 @@ class TaskManager {
     const deletionResult = await this.collection.deleteOne({
       user_id: userId,
       todo_id: todoId,
-      _id: taskId,
+      task_id: taskId,
     });
 
     return deletionResult.deletedCount > 0;

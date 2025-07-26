@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { Collection, MongoClient } from "mongodb";
 import { Session, User } from "../../src/types.ts";
 import { SessionManager } from "../../src/models/session-manager.ts";
-import { assert, assertEquals, assertRejects } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertObjectMatch,
+  assertRejects,
+} from "@std/assert";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
 let client: MongoClient;
@@ -49,7 +54,7 @@ describe("getSessionById", () => {
   });
 
   it("should return a session by its ID", async () => {
-    const session: Session = { _id: 1, user_id: 123 };
+    const session: Session = { session_id: 1, user_id: 123 };
     await sessionCollection.insertOne(session);
 
     const sessionManager = SessionManager.init(
@@ -80,8 +85,8 @@ describe("hasSession", () => {
   });
 
   it("should return true if a session exists for the user", async () => {
-    const session1: Session = { _id: 0, user_id: 123 };
-    const session2: Session = { _id: 1, user_id: 456 };
+    const session1: Session = { session_id: 0, user_id: 123 };
+    const session2: Session = { session_id: 1, user_id: 456 };
     await sessionCollection.insertOne(session1);
     await sessionCollection.insertOne(session2);
 
@@ -117,21 +122,21 @@ describe("createSession", () => {
       await sessionManager.createSession(999);
     }, Error);
 
-    assertSpyCallArgs(findOneStub, 0, [{ _id: 999 }]);
+    assertSpyCallArgs(findOneStub, 0, [{ user_id: 999 }]);
     assertEquals(error1.message, "User not found!");
 
     const error2 = await assertRejects(async () => {
       await sessionManager.createSession(99);
     }, Error);
 
-    assertSpyCallArgs(findOneStub, 1, [{ _id: 99 }]);
+    assertSpyCallArgs(findOneStub, 1, [{ user_id: 99 }]);
     assertEquals(error2.message, "User not found!");
   });
 
   it("should create a session for an existing user", async () => {
     const userId = 0;
     const user: User = {
-      _id: 0,
+      user_id: 0,
       username: "Test User",
       password: "password",
     };
@@ -147,14 +152,13 @@ describe("createSession", () => {
 
     assertEquals(sessionId, 0);
     const foundSession = await sessionManager.getSessionById(0);
-
-    assertEquals(foundSession, { _id: 0, user_id: userId });
+    assertObjectMatch(foundSession!, { session_id: 0, user_id: userId });
   });
 
   it("should use the idGenerator to create a session ID", async () => {
     const userId = 0;
     const user: User = {
-      _id: userId,
+      user_id: userId,
       username: "Test User",
       password: "password",
     };
@@ -173,25 +177,25 @@ describe("createSession", () => {
     assertEquals(sessionId1, 0);
     const foundSession = await sessionManager.getSessionById(0);
 
-    assertEquals(foundSession, { _id: 0, user_id: userId });
+    assertObjectMatch(foundSession!, { session_id: 0, user_id: userId });
 
     const sessionId2 = await sessionManager.createSession(userId);
     assertEquals(sessionId2, 1);
     const foundSession2 = await sessionManager.getSessionById(1);
-    assertEquals(foundSession2, { _id: 1, user_id: userId });
+    assertObjectMatch(foundSession2!, { session_id: 1, user_id: userId });
   });
 
   it("should create session for any user ID", async () => {
     const userId1 = 0;
     const user1: User = {
-      _id: userId1,
+      user_id: userId1,
       username: "User One",
       password: "password1",
     };
     await userCollection.insertOne(user1);
     const userId2 = 1;
     const user2: User = {
-      _id: userId2,
+      user_id: userId2,
       username: "User Two",
       password: "password2",
     };
@@ -207,18 +211,18 @@ describe("createSession", () => {
     const sessionId1 = await sessionManager.createSession(userId1);
     assertEquals(sessionId1, 0);
     const foundSession1 = await sessionManager.getSessionById(0);
-    assertEquals(foundSession1, { _id: 0, user_id: userId1 });
+    assertObjectMatch(foundSession1!, { session_id: 0, user_id: userId1 });
 
     const sessionId2 = await sessionManager.createSession(userId2);
     assertEquals(sessionId2, 1);
     const foundSession2 = await sessionManager.getSessionById(1);
-    assertEquals(foundSession2, { _id: 1, user_id: userId2 });
+    assertObjectMatch(foundSession2!, { session_id: 1, user_id: userId2 });
   });
 
   it("should create multiple sessions for the same user", async () => {
     const userId = 0;
     const user: User = {
-      _id: userId,
+      user_id: userId,
       username: "Test User",
       password: "password",
     };
@@ -235,12 +239,12 @@ describe("createSession", () => {
     const sessionId1 = await sessionManager.createSession(userId);
     assertEquals(sessionId1, 0);
     const foundSession1 = await sessionManager.getSessionById(0);
-    assertEquals(foundSession1, { _id: 0, user_id: userId });
+    assertObjectMatch(foundSession1!, { session_id: 0, user_id: userId });
 
     const sessionId2 = await sessionManager.createSession(userId);
     assertEquals(sessionId2, 1);
     const foundSession2 = await sessionManager.getSessionById(1);
-    assertEquals(foundSession2, { _id: 1, user_id: userId });
+    assertObjectMatch(foundSession2!, { session_id: 1, user_id: userId });
   });
 });
 
@@ -273,8 +277,8 @@ describe("deleteSession", () => {
   });
 
   it("should delete an existing session", async () => {
-    const session1: Session = { _id: 0, user_id: 123 };
-    const session2: Session = { _id: 1, user_id: 456 };
+    const session1: Session = { session_id: 0, user_id: 123 };
+    const session2: Session = { session_id: 1, user_id: 456 };
     await sessionCollection.insertOne(session1);
     await sessionCollection.insertOne(session2);
 

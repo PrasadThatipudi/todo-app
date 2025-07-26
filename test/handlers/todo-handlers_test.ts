@@ -32,8 +32,8 @@ beforeEach(async () => {
   await userCollection.deleteMany({});
   await sessionCollection.deleteMany({});
 
-  const user = { _id: userId, username: "test", password: "test" };
-  const session = { _id: sessionId, user_id: userId };
+  const user: User = { user_id: userId, username: "test", password: "test" };
+  const session: Session = { session_id: sessionId, user_id: userId };
   await userCollection.insertOne(user);
   await sessionCollection.insertOne(session);
 });
@@ -48,10 +48,14 @@ afterEach(async () => {
   await client.close();
 });
 
-const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
+const createTodo = (
+  todo_id: number,
+  title: string,
+  user_id = userId,
+): Todo => ({
   user_id,
   title,
-  _id,
+  todo_id,
 });
 
 const silentLogger = () => {};
@@ -98,7 +102,7 @@ describe("serveTodos", () => {
       {
         title: todo.title,
         user_id: todo.user_id,
-        todo_id: todo._id,
+        todo_id: todo.todo_id,
         tasks: [],
       },
     ];

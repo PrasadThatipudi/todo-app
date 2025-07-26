@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { TaskManager } from "../../src/models/task-manager.ts";
-import { assert, assertEquals, assertFalse, assertRejects } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertObjectMatch,
+  assertRejects,
+} from "@std/assert";
 import { Task } from "../../src/types.ts";
 import { Collection, MongoClient } from "mongodb";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
@@ -30,12 +36,12 @@ const userId = 0;
 const todoId = 0;
 
 const createTestTask = (
-  id: number,
+  task_id: number,
   description: string,
   todoId: number = 0,
   done: boolean = false,
 ): Task => ({
-  _id: id,
+  task_id,
   description,
   done,
   user_id: userId,
@@ -62,7 +68,14 @@ describe("getAllTasks", () => {
     const tasks = await taskManager.getAllTasks(userId, todoId);
 
     assertEquals(tasks.length, 2);
-    assertEquals(tasks, [task1, task2]);
+    assertObjectMatch(
+      tasks[0] as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>,
+    );
+    assertObjectMatch(
+      tasks[1] as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>,
+    );
   });
 
   it("should return tasks only for the specified user and todo", async () => {
@@ -79,10 +92,16 @@ describe("getAllTasks", () => {
     const tasksOfTodo2 = await taskManager.getAllTasks(userId, 2);
 
     assertEquals(tasksOfTodo1.length, 1);
-    assertEquals(tasksOfTodo1[0], task1);
+    assertObjectMatch(
+      tasksOfTodo1[0] as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>,
+    );
 
     assertEquals(tasksOfTodo2.length, 1);
-    assertEquals(tasksOfTodo2[0], task2);
+    assertObjectMatch(
+      tasksOfTodo2[0] as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>,
+    );
   });
 
   it("should return tasks only for the specified user", async () => {
@@ -97,7 +116,10 @@ describe("getAllTasks", () => {
 
     const tasksOfUser1 = await taskManager.getAllTasks(userId);
     assertEquals(tasksOfUser1.length, 1);
-    assertEquals(tasksOfUser1[0], task1);
+    assertObjectMatch(
+      tasksOfUser1[0] as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>,
+    );
 
     const tasksOfUser2 = await taskManager.getAllTasks(userId + 1);
     assertEquals(tasksOfUser2.length, 1);
@@ -132,8 +154,11 @@ describe("getTaskById", () => {
     const task: Task = createTestTask(0, "Test Task 1");
     await taskManager.addTask(userId, todoId, task.description);
 
-    const newTask = await taskManager.getTaskById(userId, todoId, task._id);
-    assertEquals(newTask, task);
+    const newTask = await taskManager.getTaskById(userId, todoId, task.task_id);
+    assertObjectMatch(
+      newTask! as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>,
+    );
   });
 });
 
@@ -179,7 +204,7 @@ describe("addTask", () => {
   it("should add a task", async () => {
     const taskManager = TaskManager.init(() => 0, collection);
     const task: Task = {
-      _id: 0,
+      task_id: 0,
       description: "test-task-1",
       done: false,
       user_id: userId,
@@ -188,7 +213,10 @@ describe("addTask", () => {
     const taskId = await taskManager.addTask(userId, todoId, "test-task-1");
     const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
 
-    assertEquals(addedTask, task);
+    assertObjectMatch(
+      addedTask! as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>,
+    );
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
 
@@ -202,7 +230,10 @@ describe("addTask", () => {
     )!;
     const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
 
-    assertEquals(addedTask, task);
+    assertObjectMatch(
+      addedTask! as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>,
+    );
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
 
@@ -220,9 +251,15 @@ describe("addTask", () => {
     const addedTask2 = await taskManager2.getTaskById(userId, todo2, task2Id!);
 
     assertEquals((await taskManager1.getAllTasks(userId, todo1)).length, 1);
-    assertEquals(addedTask1, task1);
+    assertObjectMatch(
+      addedTask1! as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>,
+    );
     assertEquals((await taskManager2.getAllTasks(userId, todo2)).length, 1);
-    assertEquals(addedTask2, task2);
+    assertObjectMatch(
+      addedTask2! as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>,
+    );
   });
 
   it("should throw an error if task description is empty", async () => {
@@ -537,7 +574,13 @@ describe("removeTask", () => {
     const taskId1 = await taskManager.addTask(userId1, todoId1, "test-task-1")!;
     const task1 = await taskManager.getTaskById(userId1, todoId1, taskId1!);
 
-    assertEquals(task1!, createTestTask(taskId1!, "test-task-1", todoId1));
+    assertObjectMatch(
+      task1! as unknown as Record<string, unknown>,
+      createTestTask(taskId1!, "test-task-1", todoId1) as unknown as Record<
+        string,
+        unknown
+      >,
+    );
     await taskManager.removeTask(userId1, todoId1, taskId1!);
     assertEquals(
       await taskManager.getTaskById(userId1, todoId1, taskId1!),
@@ -552,7 +595,10 @@ describe("removeTask", () => {
       user_id: userId2,
       todo_id: todoId2,
     };
-    assertEquals(task2!, expectedTask2);
+    assertObjectMatch(
+      task2! as unknown as Record<string, unknown>,
+      expectedTask2 as unknown as Record<string, unknown>,
+    );
     await taskManager.removeTask(userId2, todoId2, taskId2!);
     assertEquals(
       await taskManager.getTaskById(userId2, todoId2, taskId2!),

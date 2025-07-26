@@ -3,7 +3,12 @@ import { TodoManager } from "../../src/models/todo-manager.ts";
 import { assert } from "@std/assert/assert";
 import { Todo } from "../../src/types.ts";
 import { Collection, MongoClient } from "mongodb";
-import { assertEquals, assertFalse, assertRejects } from "@std/assert";
+import {
+  assertEquals,
+  assertFalse,
+  assertObjectMatch,
+  assertRejects,
+} from "@std/assert";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
 let client: MongoClient;
@@ -24,10 +29,14 @@ afterEach(async () => {
 const testIdGenerator = () => 0;
 const idGenerator = (start: number) => () => start++;
 
-const createTodo = (_id: number, title: string, user_id = userId): Todo => ({
+const createTodo = (
+  todo_id: number,
+  title: string,
+  user_id = userId,
+): Todo => ({
   user_id,
   title,
-  _id,
+  todo_id,
 });
 
 describe("init", () => {
@@ -121,8 +130,8 @@ describe("hasTodo", () => {
     assert(await todoManager.hasTodo(0, todoId1));
 
     assert(await todoManager.hasTodo(1, todoId2));
-    assertSpyCallArgs(countStub, 0, [{ _id: todoId1, user_id: 0 }]);
-    assertSpyCallArgs(countStub, 1, [{ _id: todoId2, user_id: 1 }]);
+    assertSpyCallArgs(countStub, 0, [{ todo_id: todoId1, user_id: 0 }]);
+    assertSpyCallArgs(countStub, 1, [{ todo_id: todoId2, user_id: 1 }]);
   });
 
   it("should return false if title is not exists", async () => {
@@ -205,8 +214,14 @@ describe("addTodo", () => {
     assertEquals(todoIdOfUser1, 0);
     assertEquals(allTodosOfUser1.length, 1);
     assertEquals(allTodosOfUser2.length, 1);
-    assertEquals(allTodosOfUser1[0], createTodo(0, "Test Todo", 1));
-    assertEquals(allTodosOfUser2[0], createTodo(1, "Test Todo", 2));
+    assertObjectMatch(
+      allTodosOfUser1[0],
+      createTodo(0, "Test Todo", 1) as unknown as Record<string, unknown>,
+    );
+    assertObjectMatch(
+      allTodosOfUser2[0],
+      createTodo(1, "Test Todo", 2) as unknown as Record<string, unknown>,
+    );
   });
 
   it("should return added todo id when title is valid", async () => {
@@ -238,8 +253,20 @@ describe("addTodo", () => {
     assertEquals(allTodos.length, 2);
     assertEquals(addedTodoId1, 0);
     assertEquals(addedTodoId2, 1);
-    assertEquals(allTodos[0], createTodo(0, "Test Todo 1", userId));
-    assertEquals(allTodos[1], createTodo(1, "Test Todo 2", userId));
+    assertObjectMatch(
+      allTodos[0],
+      createTodo(0, "Test Todo 1", userId) as unknown as Record<
+        string,
+        unknown
+      >,
+    );
+    assertObjectMatch(
+      allTodos[1],
+      createTodo(1, "Test Todo 2", userId) as unknown as Record<
+        string,
+        unknown
+      >,
+    );
   });
 });
 

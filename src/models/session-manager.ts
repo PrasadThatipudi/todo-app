@@ -17,24 +17,27 @@ class SessionManager {
   }
 
   async getSessionById(sessionId: number): Promise<Session | null> {
-    return await this.sessionCollection.findOne({ _id: sessionId });
+    return await this.sessionCollection.findOne({ session_id: sessionId });
   }
 
   async hasSession(sessionId: number): Promise<boolean> {
-    return (await this.sessionCollection.findOne({ _id: sessionId })) !== null;
+    return (
+      (await this.sessionCollection.findOne({ session_id: sessionId })) !== null
+    );
   }
 
   private async hasNoUser(userId: number): Promise<boolean> {
-    return !(await this.userCollection.findOne({ _id: userId }));
+    return !(await this.userCollection.findOne({ user_id: userId }));
   }
 
   async createSession(userId: number): Promise<number> {
     if (await this.hasNoUser(userId)) throw new Error("User not found!");
 
-    const session = { _id: this.idGenerator(), user_id: userId };
+    const sessionId = this.idGenerator();
+    const session: Session = { session_id: sessionId, user_id: userId };
 
-    return (await this.sessionCollection.insertOne(session))
-      .insertedId as number;
+    await this.sessionCollection.insertOne(session);
+    return sessionId;
   }
 
   async deleteSession(sessionId: number): Promise<boolean> {
@@ -42,7 +45,7 @@ class SessionManager {
       throw new Error("Session not found!");
     }
 
-    return (await this.sessionCollection.deleteOne({ _id: sessionId }))
+    return (await this.sessionCollection.deleteOne({ session_id: sessionId }))
       .acknowledged;
   }
 }

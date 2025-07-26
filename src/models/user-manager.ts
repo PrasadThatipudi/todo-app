@@ -27,22 +27,22 @@ class UserManager {
   }
 
   async getUserById(userId: number): Promise<User | null> {
-    return await this.userCollection.findOne({ _id: userId });
+    return await this.userCollection.findOne({ user_id: userId });
   }
 
   async getIdByUsername(username: string): Promise<number | null> {
     const userId = (
       await this.userCollection.findOne(
         { username },
-        { projection: { _id: 1 } },
+        { projection: { user_id: 1 } },
       )
-    )?._id;
+    )?.user_id;
 
     return userId !== undefined ? userId : null;
   }
 
   async hasUser(lookUp: number | string): Promise<boolean> {
-    const lookUpKey = typeof lookUp === "number" ? "_id" : "username";
+    const lookUpKey = typeof lookUp === "number" ? "user_id" : "username";
 
     return (
       (await this.userCollection.findOne({ [lookUpKey]: lookUp })) !== null
@@ -64,13 +64,15 @@ class UserManager {
       });
     }
 
+    const userId = this.idGenerator();
     const user: User = {
-      _id: this.idGenerator(),
+      user_id: userId,
       username,
       password: await this.encryptPassword(password),
     };
 
-    return (await this.userCollection.insertOne(user)).insertedId;
+    await this.userCollection.insertOne(user);
+    return userId;
   }
 
   async verifyPassword(userId: number, password: string): Promise<boolean> {

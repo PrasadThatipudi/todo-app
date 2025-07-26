@@ -3,11 +3,6 @@ import { TaskManager } from "./models/task-manager.ts";
 import { TodoManager } from "./models/todo-manager.ts";
 import { UserManager } from "./models/user-manager.ts";
 
-interface Student {
-  id: number;
-  name: string;
-  age: number;
-}
 interface AppContext {
   todoManager: TodoManager;
   taskManager: TaskManager;
@@ -22,7 +17,7 @@ interface TaskJSON {
 }
 
 interface Task {
-  _id: number;
+  task_id: number;
   description: string;
   done: boolean;
   todo_id: number;
@@ -30,19 +25,19 @@ interface Task {
 }
 
 interface Todo {
-  _id: number;
+  todo_id: number;
   title: string;
   user_id: number;
 }
 
 interface User {
-  _id: number;
+  user_id: number;
   username: string;
   password: string;
 }
 
 interface Session {
-  _id: number;
+  session_id: number;
   user_id: number;
 }
 
@@ -65,7 +60,6 @@ export type {
   AppContext,
   AppVariables,
   Session,
-  Student,
   Task,
   TaskJSON,
   Todo,

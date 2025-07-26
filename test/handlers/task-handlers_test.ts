@@ -36,8 +36,8 @@ beforeEach(async () => {
   await userCollection.deleteMany({});
   await sessionCollection.deleteMany({});
 
-  const user: User = { _id: userId, username: "tes", password: "test" };
-  const session: Session = { _id: sessionId, user_id: userId };
+  const user: User = { user_id: userId, username: "tes", password: "test" };
+  const session: Session = { session_id: sessionId, user_id: userId };
   await userCollection.insertOne(user);
   await sessionCollection.insertOne(session);
 });
@@ -51,8 +51,12 @@ afterEach(async () => {
   await client.close();
 });
 
-const createTask = (_id: number, description: string, done = false): Task => ({
-  _id,
+const createTask = (
+  task_id: number,
+  description: string,
+  done = false,
+): Task => ({
+  task_id,
   description,
   done,
   todo_id: todoId,
@@ -82,7 +86,7 @@ describe("handleAddTask", () => {
       logger: silentLogger,
     };
     const expectedTaskJson: Task = {
-      _id: 0,
+      task_id: 0,
       todo_id: await todoManager.addTodo(userId, "Test Todo"),
       user_id: userId,
       description: "Test Task",
@@ -106,7 +110,7 @@ describe("handleAddTask", () => {
     assertEquals(response.status, 201);
     const jsonResponse = await response.json();
     const expectedTask: Task = {
-      _id: 0,
+      task_id: 0,
       todo_id: todoId,
       user_id: userId,
       description: "Test Task",
