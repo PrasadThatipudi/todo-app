@@ -1,0 +1,8 @@
+FROM denoland/deno:latest
+
+WORKDIR /app
+
+COPY . .
+
+# Run the app
+CMD ["deno", "run","-A" , "server.ts"]

@@ -6,8 +6,8 @@ class UserManager {
     private readonly idGenerator: () => number,
     private readonly encryptPassword: (password: string) => Promise<string>,
     private readonly passwordVerifier: (
-      hash: string,
       password: string,
+      hash: string,
     ) => Promise<boolean>,
     private readonly userCollection: Collection<User>,
   ) {}
@@ -15,7 +15,7 @@ class UserManager {
   static init(
     idGenerator: () => number,
     encryptPassword: (password: string) => Promise<string>,
-    passwordVerifier: (hash: string, password: string) => Promise<boolean>,
+    passwordVerifier: (password: string, hash: string) => Promise<boolean>,
     userCollection: Collection<User>,
   ): UserManager {
     return new UserManager(
@@ -80,7 +80,7 @@ class UserManager {
 
     const hashedPassword = (await this.getUserById(userId))!.password;
 
-    return this.passwordVerifier(hashedPassword, password);
+    return this.passwordVerifier(password, hashedPassword);
   }
 }
 
