@@ -1,4 +1,4 @@
-export const DB_NAME = "todo-app";
+export const DB_NAME = "todoApp";
 export const TASKS_COLLECTION = "tasks";
 export const TODOS_COLLECTION = "todos";
 export const USERS_COLLECTION = "users";

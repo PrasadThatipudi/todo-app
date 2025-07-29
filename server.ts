@@ -9,10 +9,22 @@ import { SessionManager } from "./src/models/session-manager.ts";
 import * as config from "./src/config.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
+const connectToMongoDB = async (uri: string) => {
+  const client = new MongoClient(uri);
+  try {
+    await client.connect();
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error);
+    throw error;
+  }
+  console.log("Connected to MongoDB");
+
+  return client;
+};
+
 const main = async () => {
   const idGenerator = (start: number) => () => start++;
-  const client = new MongoClient(Deno.env.get("MONGO_URI") || "");
-  await client.connect();
+  const client = await connectToMongoDB(Deno.env.get("MONGO_URI")!);
   const database = client.db(config.DB_NAME);
 
   const todoCollection: Collection<Todo> = database.collection(
