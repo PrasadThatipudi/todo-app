@@ -9,9 +9,10 @@ import { SessionManager } from "./src/models/session-manager.ts";
 import * as config from "./src/config.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
-const main = () => {
+const main = async () => {
   const idGenerator = (start: number) => () => start++;
   const client = new MongoClient(Deno.env.get("MONGO_URI") || "");
+  await client.connect();
   const database = client.db(config.DB_NAME);
 
   const todoCollection: Collection<Todo> = database.collection(
@@ -46,4 +47,4 @@ const main = () => {
   Deno.serve(createApp(appContext).fetch);
 };
 
-main();
+await main();
