@@ -10,6 +10,9 @@ import * as config from "./src/config.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
 const connectToMongoDB = async (uri: string) => {
+  if (!uri) {
+    throw new Error("MONGO_URI environment variable is not set");
+  }
   const client = new MongoClient(uri);
   try {
     await client.connect();
