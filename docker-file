@@ -10,4 +10,4 @@ ENV PATH="$DENO_INSTALL/bin:$PATH"
 WORKDIR /app
 COPY . .
 
-CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "server.ts"]
+CMD ["deno", "run", "-A", "server.ts"]
