@@ -1,13 +1,23 @@
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y curl unzip ca-certificates
+# Install CA certs, curl, unzip
+RUN apt-get update && \
+    apt-get install -y curl unzip ca-certificates && \
+    apt-get clean
 
 # Install Deno
 RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
 
+# Create working directory
 WORKDIR /app
+
+# Copy source code
 COPY . .
 
-CMD ["deno", "run", "-A", "server.ts"]
+# Permissions (optional but safe)
+RUN chmod -R 755 /app
+
+# Run the app
+CMD ["deno", "run","-A", "server.ts"]
