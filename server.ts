@@ -21,7 +21,6 @@ const connectToMongoDB = async (uri: string) => {
     throw error;
   }
   console.log("Connected to MongoDB");
-
   return client;
 };
 
