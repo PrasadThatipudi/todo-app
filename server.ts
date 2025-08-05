@@ -24,8 +24,10 @@ const connectToMongoDB = async (uri: string) => {
   return client;
 };
 
+const idGenerator = (): number =>
+  Date.now() * 10000 + Math.floor(performance.now() * 10000);
+
 const main = async () => {
-  const idGenerator = (start: number) => () => start++;
   const client = await connectToMongoDB(Deno.env.get("MONGO_URI")!);
   const database = client.db(config.DB_NAME);
 
@@ -43,16 +45,11 @@ const main = async () => {
   );
 
   const appContext: AppContext = {
-    todoManager: TodoManager.init(idGenerator(0), todoCollection),
-    taskManager: TaskManager.init(idGenerator(0), taskCollection),
-    userManager: UserManager.init(
-      idGenerator(0),
-      hash,
-      compare,
-      userCollection,
-    ),
+    todoManager: TodoManager.init(idGenerator, todoCollection),
+    taskManager: TaskManager.init(idGenerator, taskCollection),
+    userManager: UserManager.init(idGenerator, hash, compare, userCollection),
     sessionManager: SessionManager.init(
-      idGenerator(0),
+      idGenerator,
       sessionCollection,
       userCollection,
     ),
