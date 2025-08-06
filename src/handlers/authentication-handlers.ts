@@ -47,8 +47,8 @@ const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
     return ctx.json({ message: "Invalid password" }, 409);
   }
 
-  await sessionManager.createSession(userId);
-  setCookie(ctx, "sessionId", "0");
+  const sessionId = await sessionManager.createSession(userId);
+  setCookie(ctx, "sessionId", sessionId.toString());
   return ctx.json({ message: "Login successful" }, 201);
 };
 

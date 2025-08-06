@@ -533,6 +533,64 @@ describe("login", () => {
     assertEquals(response2.status, 201);
     assertSpyCallArgs(verifyPasswordStub, 0, [0, "password123"]);
   });
+
+  it("should set sessionId cookie on successful login", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const nextId = idGenerator(0);
+    const verify = (hash: string, password: string) =>
+      Promise.resolve(hash === password);
+
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection,
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection,
+    );
+    const appContext: AppContext = {
+      taskManager,
+      todoManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const userId = await userManager.createUser("user1", "password123");
+
+    const createSessionStub = stub(
+      sessionManager,
+      "createSession",
+      () => Promise.resolve(nextId()),
+    );
+
+    const loginReq1 = new Request("http://localhost/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "user1", password: "password123" }),
+    });
+
+    const response1 = await app.request(loginReq1);
+    assertEquals(response1.status, 201);
+    assertEquals(response1.headers.get("Set-Cookie"), "sessionId=0; Path=/");
+    assertSpyCallArgs(createSessionStub, 0, [userId]);
+
+    const loginReq2 = new Request("http://localhost/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "user1", password: "password123" }),
+    });
+    const response2 = await app.request(loginReq2);
+    assertEquals(response2.status, 201);
+    assertEquals(response2.headers.get("Set-Cookie"), "sessionId=1; Path=/");
+    assertSpyCallArgs(createSessionStub, 1, [userId]);
+  });
 });
 
 describe("user authentication", () => {
