@@ -80,7 +80,13 @@ const createApp = (appContext: AppContext) => {
   app.use(logger(appContext.logger));
   app.use(setupAppContext(appContext));
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: "*",
+      allowMethods: ["GET", "POST", "PATCH", "DELETE"],
+      allowHeaders: ["Content-Type", "Authorization"],
+    }),
+  );
   app.post("/signup", handleSignUp);
   app.post("/login", handleLogin);
   app.use(authenticateUserAndSetUserContext);
