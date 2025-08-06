@@ -51,12 +51,12 @@ describe("sign-up", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -109,12 +109,12 @@ describe("sign-up", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
 
     const appContext: AppContext = {
@@ -156,12 +156,12 @@ describe("sign-up", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -192,12 +192,12 @@ describe("sign-up", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -240,12 +240,12 @@ describe("sign-up", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -278,12 +278,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -336,12 +336,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -382,12 +382,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -429,12 +429,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -465,12 +465,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -500,12 +500,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -516,10 +516,8 @@ describe("login", () => {
     };
     const app = createApp(appContext);
 
-    const verifyPasswordStub = stub(
-      userManager,
-      "verifyPassword",
-      () => Promise.resolve(true),
+    const verifyPasswordStub = stub(userManager, "verifyPassword", () =>
+      Promise.resolve(true)
     );
     await userManager.createUser("user1", "password123");
 
@@ -546,12 +544,12 @@ describe("login", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -564,10 +562,8 @@ describe("login", () => {
 
     const userId = await userManager.createUser("user1", "password123");
 
-    const createSessionStub = stub(
-      sessionManager,
-      "createSession",
-      () => Promise.resolve(nextId()),
+    const createSessionStub = stub(sessionManager, "createSession", () =>
+      Promise.resolve(nextId())
     );
 
     const loginReq1 = new Request("http://localhost/login", {
@@ -578,7 +574,8 @@ describe("login", () => {
 
     const response1 = await app.request(loginReq1);
     assertEquals(response1.status, 201);
-    assertEquals(response1.headers.get("Set-Cookie"), "sessionId=0; Path=/");
+    const expectedCookie1 = `sessionId=0; Path=/; Secure; SameSite=None`;
+    assertEquals(response1.headers.get("Set-Cookie"), expectedCookie1);
     assertSpyCallArgs(createSessionStub, 0, [userId]);
 
     const loginReq2 = new Request("http://localhost/login", {
@@ -588,7 +585,8 @@ describe("login", () => {
     });
     const response2 = await app.request(loginReq2);
     assertEquals(response2.status, 201);
-    assertEquals(response2.headers.get("Set-Cookie"), "sessionId=1; Path=/");
+    const expectedCookie2 = `sessionId=1; Path=/; Secure; SameSite=None`;
+    assertEquals(response2.headers.get("Set-Cookie"), expectedCookie2);
     assertSpyCallArgs(createSessionStub, 1, [userId]);
   });
 });
@@ -603,12 +601,12 @@ describe("user authentication", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,
@@ -649,12 +647,12 @@ describe("user authentication", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext: AppContext = {
       taskManager,

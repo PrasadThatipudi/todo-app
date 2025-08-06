@@ -48,7 +48,11 @@ const handleLogin = async (ctx: Context<{ Variables: AppVariables }>) => {
   }
 
   const sessionId = await sessionManager.createSession(userId);
-  setCookie(ctx, "sessionId", sessionId.toString());
+  setCookie(ctx, "sessionId", sessionId.toString(), {
+    secure: true,
+    sameSite: "None",
+    path: "/",
+  });
   return ctx.json({ message: "Login successful" }, 201);
 };
 
