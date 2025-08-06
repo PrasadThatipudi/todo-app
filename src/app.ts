@@ -82,9 +82,10 @@ const createApp = (appContext: AppContext) => {
 
   app.use(
     cors({
-      origin: "*",
+      origin: (origin) => origin || "",
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
     }),
   );
   app.post("/signup", handleSignUp);
