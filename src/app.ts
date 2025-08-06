@@ -12,6 +12,7 @@ import {
   handleSignUp,
 } from "./handlers/authentication-handlers.ts";
 import { getCookie } from "hono/cookie";
+import { cors } from "hono/cors";
 
 const setupAppContext =
   (appContext: AppContext): MiddlewareHandler =>
@@ -79,6 +80,7 @@ const createApp = (appContext: AppContext) => {
   app.use(logger(appContext.logger));
   app.use(setupAppContext(appContext));
 
+  app.use(cors());
   app.post("/signup", handleSignUp);
   app.post("/login", handleLogin);
   app.use(authenticateUserAndSetUserContext);
