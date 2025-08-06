@@ -83,7 +83,7 @@ const createApp = (appContext: AppContext) => {
   app.use(
     cors({
       origin: "*",
-      allowMethods: ["GET", "POST", "PATCH", "DELETE"],
+      allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
     }),
   );
