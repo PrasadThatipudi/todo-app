@@ -55,12 +55,14 @@ const createTask = (
   task_id: number,
   description: string,
   done = false,
+  todo_id = todoId,
+  user_id = userId
 ): Task => ({
   task_id,
   description,
   done,
-  todo_id: todoId,
-  user_id: userId,
+  todo_id,
+  user_id,
 });
 
 describe("handleAddTask", () => {
@@ -71,12 +73,12 @@ describe("handleAddTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -93,10 +95,8 @@ describe("handleAddTask", () => {
       done: false,
     };
     const addTaskStub = stub(taskManager, "addTask", () => Promise.resolve(0));
-    const getTaskStub = stub(
-      taskManager,
-      "getTaskById",
-      () => Promise.resolve(expectedTaskJson),
+    const getTaskStub = stub(taskManager, "getTaskById", () =>
+      Promise.resolve(expectedTaskJson)
     );
     const app = createApp(appContext);
     const response = await app.request(`/todos/${todoId}/tasks`, {
@@ -128,12 +128,12 @@ describe("handleAddTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -144,10 +144,8 @@ describe("handleAddTask", () => {
     };
     const app = createApp(appContext);
     const todoId = 0;
-    const hasTodoStub = stub(
-      todoManager,
-      "hasTodo",
-      () => Promise.resolve(false),
+    const hasTodoStub = stub(todoManager, "hasTodo", () =>
+      Promise.resolve(false)
     );
     const response = await app.request(`/todos/${todoId}/tasks`, {
       method: "POST",
@@ -171,12 +169,12 @@ describe("handleAddTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
 
     const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
@@ -198,8 +196,8 @@ describe("handleAddTask", () => {
         Promise.resolve(
           taskId === 0
             ? createTask(0, `Test Task ${taskId + 1}`)
-            : createTask(1, `Test Task ${taskId + 1}`),
-        ),
+            : createTask(1, `Test Task ${taskId + 1}`)
+        )
     );
     const response1 = await app.request(`/todos/${todoId1}/tasks`, {
       method: "POST",
@@ -242,12 +240,12 @@ describe("handleAddTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -260,10 +258,8 @@ describe("handleAddTask", () => {
 
     const todoId = await todoManager.addTodo(0, "Test Todo");
     const nextId1 = idGenerator(0);
-    const addTaskStub = stub(
-      taskManager,
-      "addTask",
-      () => Promise.resolve(nextId1()),
+    const addTaskStub = stub(taskManager, "addTask", () =>
+      Promise.resolve(nextId1())
     );
 
     const nextId2 = idGenerator(0);
@@ -300,6 +296,79 @@ describe("handleAddTask", () => {
     assertEquals(jsonResponse1, createTask(0, "Test Task 1"));
     assertEquals(jsonResponse2, createTask(1, "Test Task 2"));
   });
+
+  it("should allow adding tasks of any users", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const userManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      idGenerator(0),
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      sessionManager,
+      userManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const nextId1 = idGenerator(0);
+    const addTaskStub = stub(taskManager, "addTask", () =>
+      Promise.resolve(nextId1())
+    );
+    const nextId2 = idGenerator(0);
+    const getTaskStub = stub(taskManager, "getTaskById", () => {
+      const id = nextId2();
+      return Promise.resolve(createTask(id, `User ${id + 1} Task`));
+    });
+
+    const userId1 = await userManager.createUser("user1", "password1");
+    const todoId1 = await todoManager.addTodo(userId1, "User 1 Todo");
+    const sessionId1 = await sessionManager.createSession(userId1);
+
+    const response1 = await app.request(`/todos/${todoId1}/tasks`, {
+      method: "POST",
+      body: JSON.stringify({ description: "User 1 Task" }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId1}`,
+      },
+    });
+
+    assertEquals(response1.status, 201);
+    assertSpyCallArgs(addTaskStub, 0, [userId1, todoId1, "User 1 Task"]);
+    assertSpyCallArgs(getTaskStub, 0, [userId1, todoId1, 0]);
+    const jsonResponse1 = await response1.json();
+    assertEquals(jsonResponse1, createTask(0, "User 1 Task"));
+
+    const userId2 = await userManager.createUser("user2", "password2");
+    const todoId2 = await todoManager.addTodo(userId2, "User 2 Todo");
+    const sessionId2 = await sessionManager.createSession(userId2);
+
+    const response2 = await app.request(`/todos/${todoId2}/tasks`, {
+      method: "POST",
+      body: JSON.stringify({ description: "User 2 Task" }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId2}`,
+      },
+    });
+
+    assertEquals(response2.status, 201);
+    assertSpyCallArgs(addTaskStub, 1, [userId2, todoId2, "User 2 Task"]);
+    assertSpyCallArgs(getTaskStub, 1, [userId2, todoId2, 1]);
+    const jsonResponse2 = await response2.json();
+    assertEquals(jsonResponse2, createTask(1, "User 2 Task"));
+  });
 });
 
 describe("handleToggleTask", () => {
@@ -310,12 +379,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const todoId = 0;
     const taskId = 0;
@@ -347,12 +416,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -363,10 +432,8 @@ describe("handleToggleTask", () => {
     };
     const app = createApp(appContext);
 
-    const hasTodoStub = stub(
-      todoManager,
-      "hasTodo",
-      () => Promise.resolve(false),
+    const hasTodoStub = stub(todoManager, "hasTodo", () =>
+      Promise.resolve(false)
     );
 
     const response = await app.request(`/todos/${todoId}/tasks/0`, {
@@ -389,12 +456,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -407,10 +474,8 @@ describe("handleToggleTask", () => {
 
     const app = createApp(appContext);
 
-    const hasTaskStub = stub(
-      taskManager,
-      "hasTask",
-      () => Promise.resolve(false),
+    const hasTaskStub = stub(taskManager, "hasTask", () =>
+      Promise.resolve(false)
     );
 
     const response = await app.request(`/todos/${todoId}/tasks/999`, {
@@ -432,12 +497,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -449,22 +514,19 @@ describe("handleToggleTask", () => {
     const todoId = await todoManager.addTodo(0, "Test Todo");
     const taskId = await taskManager.addTask(0, todoId, "Test Task");
 
-    const toggleTaskStub = stub(
-      taskManager,
-      "toggleTaskDone",
-      () => Promise.resolve(true),
+    const toggleTaskStub = stub(taskManager, "toggleTaskDone", () =>
+      Promise.resolve(true)
     );
     const toggleTask = (
-      (done: boolean = false) => () => {
+      (done: boolean = false) =>
+      () => {
         done = !done;
         return done;
       }
     )();
 
-    const getTaskJsonStub = stub(
-      taskManager,
-      "getTaskById",
-      () => Promise.resolve(createTask(taskId!, "Test Task", toggleTask())),
+    const getTaskJsonStub = stub(taskManager, "getTaskById", () =>
+      Promise.resolve(createTask(taskId!, "Test Task", toggleTask()))
     );
 
     const app = createApp(appContext);
@@ -500,12 +562,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -520,10 +582,8 @@ describe("handleToggleTask", () => {
     const task1Id = await taskManager.addTask(0, todoId, "Task 1");
     const task2Id = await taskManager.addTask(0, todoId, "Task 2");
 
-    const toggleTaskStub = stub(
-      taskManager,
-      "toggleTaskDone",
-      () => Promise.resolve(true),
+    const toggleTaskStub = stub(taskManager, "toggleTaskDone", () =>
+      Promise.resolve(true)
     );
     const nextId = idGenerator(0);
     const getTaskStub = stub(taskManager, "getTaskById", () => {
@@ -563,12 +623,12 @@ describe("handleToggleTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -585,10 +645,8 @@ describe("handleToggleTask", () => {
     const task1Id = await taskManager.addTask(0, todoId1, "Task 1");
     const task2Id = await taskManager.addTask(0, todoId2, "Task 2");
 
-    const toggleTaskStub = stub(
-      taskManager,
-      "toggleTaskDone",
-      () => Promise.resolve(true),
+    const toggleTaskStub = stub(taskManager, "toggleTaskDone", () =>
+      Promise.resolve(true)
     );
     const nextId = idGenerator(0);
     const getTaskStub = stub(taskManager, "getTaskById", () => {
@@ -618,6 +676,82 @@ describe("handleToggleTask", () => {
     const jsonResponse2 = await response2.json();
     assertEquals(jsonResponse2, createTask(task2Id!, `Task ${task2Id! + 1}`));
   });
+
+  it("should able to toggle task done status for any user", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const userManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      idGenerator(0),
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      sessionManager,
+      userManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const toggleTaskStub = stub(taskManager, "toggleTaskDone", () =>
+      Promise.resolve(true)
+    );
+
+    const task1 = createTask(0, "Task-1", true, 0, 0);
+    const task2 = createTask(1, "Task-2", true, 1, 1);
+
+    const getTaskStub = stub(taskManager, "getTaskById", (userId) =>
+      userId === 0 ? Promise.resolve(task1) : Promise.resolve(task2)
+    );
+
+    // Checking toggle task done status for User 1
+    const userId1 = await userManager.createUser("User1", "Password1");
+    const sessionId1 = await sessionManager.createSession(userId1);
+    const todoId1 = await todoManager.addTodo(userId1, "Todo-1");
+    const taskId1 = await taskManager.addTask(userId1, todoId1, "Task-1");
+
+    const response1 = await app.request(`todos/${todoId1}/tasks/${taskId1}`, {
+      method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId1}` },
+    });
+
+    assertEquals(response1.status, 200);
+    assertSpyCallArgs(toggleTaskStub, 0, [userId1, todoId1, taskId1]);
+    assertSpyCallArgs(getTaskStub, 0, [userId1, todoId1, taskId1]);
+    const jsonResponse1 = await response1.json();
+    assertEquals(
+      jsonResponse1,
+      createTask(taskId1!, "Task-1", true, todoId1, userId1)
+    );
+
+    // Checking toggle task done status for User 2
+    const userId2 = await userManager.createUser("User2", "Password2");
+    const sessionId2 = await sessionManager.createSession(userId2);
+    const todoId2 = await todoManager.addTodo(userId2, "Todo-2");
+    const taskId2 = await taskManager.addTask(userId2, todoId2, "Task-2");
+
+    const response2 = await app.request(`todos/${todoId2}/tasks/${taskId2}`, {
+      method: "PATCH",
+      headers: { Cookie: `sessionId=${sessionId2}` },
+    });
+
+    assertEquals(response2.status, 200);
+    assertSpyCallArgs(toggleTaskStub, 1, [userId2, todoId2, taskId2]);
+    assertSpyCallArgs(getTaskStub, 1, [userId2, todoId2, taskId2]);
+    const jsonResponse2 = await response2.json();
+    assertEquals(
+      jsonResponse2,
+      createTask(taskId2!, "Task-2", true, todoId2, userId2)
+    );
+  });
 });
 
 describe("handleDeleteTask", () => {
@@ -628,12 +762,12 @@ describe("handleDeleteTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -665,12 +799,12 @@ describe("handleDeleteTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const todoId = await todoManager.addTodo(userId, "Test Todo");
 
@@ -701,12 +835,12 @@ describe("handleDeleteTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -719,10 +853,8 @@ describe("handleDeleteTask", () => {
     const todoId = await todoManager.addTodo(userId, "Test Todo");
     const taskId = await taskManager.addTask(userId, todoId, "Test Task");
 
-    const deleteTaskStub = stub(
-      taskManager,
-      "removeTask",
-      () => Promise.resolve(true),
+    const deleteTaskStub = stub(taskManager, "removeTask", () =>
+      Promise.resolve(true)
     );
 
     const app = createApp(appContext);
@@ -746,12 +878,12 @@ describe("handleDeleteTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -768,10 +900,8 @@ describe("handleDeleteTask", () => {
     const task1Id = await taskManager.addTask(0, todoId1, "Task 1");
     const task2Id = await taskManager.addTask(0, todoId2, "Task 2");
 
-    const deleteTaskStub = stub(
-      taskManager,
-      "removeTask",
-      () => Promise.resolve(true),
+    const deleteTaskStub = stub(taskManager, "removeTask", () =>
+      Promise.resolve(true)
     );
 
     // Delete first task
@@ -804,12 +934,12 @@ describe("handleDeleteTask", () => {
       () => 0,
       testEncrypt,
       verify,
-      userCollection,
+      userCollection
     );
     const sessionManager = SessionManager.init(
       () => 0,
       sessionCollection,
-      userCollection,
+      userCollection
     );
     const appContext = {
       todoManager,
@@ -823,10 +953,8 @@ describe("handleDeleteTask", () => {
     const todoId = await todoManager.addTodo(0, "Test Todo");
     const taskId = await taskManager.addTask(0, todoId, "Test Task");
 
-    const deleteTaskStub = stub(
-      taskManager,
-      "removeTask",
-      () => Promise.resolve(false),
+    const deleteTaskStub = stub(taskManager, "removeTask", () =>
+      Promise.resolve(false)
     );
 
     const response = await app.request(`/todos/${todoId}/tasks/${taskId}`, {
@@ -838,5 +966,65 @@ describe("handleDeleteTask", () => {
     assertSpyCallArgs(deleteTaskStub, 0, [0, todoId, taskId]);
     const jsonResponse = await response.json();
     assertEquals(jsonResponse, false);
+  });
+
+  it("should allow deleting tasks from any user", async () => {
+    const idGenerator = (start: number) => () => start++;
+
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const userManager = UserManager.init(
+      idGenerator(0),
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      idGenerator(0),
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      sessionManager,
+      userManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const removeTaskStub = stub(taskManager, "removeTask", () =>
+      Promise.resolve(true)
+    );
+
+    // Checking task deletion for user 1
+    const userId1 = await userManager.createUser("User-1", "Password");
+    const sessionId1 = await sessionManager.createSession(userId1);
+    const todoId1 = await todoManager.addTodo(userId1, "Todo-1");
+    const taskId1 = await taskManager.addTask(userId1, todoId1, "Task-1");
+
+    const response1 = await app.request(`/todos/${todoId1}/tasks/${taskId1}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId1}` },
+    });
+
+    assertEquals(response1.status, 200);
+    assertSpyCallArgs(removeTaskStub, 0, [userId1, todoId1, taskId1]);
+    assertEquals(await response1.json(), true);
+
+    // Checking task deletion for user 2
+    const userId2 = await userManager.createUser("User-2", "Password");
+    const sessionId2 = await sessionManager.createSession(userId2);
+    const todoId2 = await todoManager.addTodo(userId2, "Todo-2");
+    const taskId2 = await taskManager.addTask(userId2, todoId2, "Task-2");
+
+    const response2 = await app.request(`/todos/${todoId2}/tasks/${taskId2}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId2}` },
+    });
+
+    assertEquals(response2.status, 200);
+    assertSpyCallArgs(removeTaskStub, 1, [userId2, todoId2, taskId2]);
+    assertEquals(await response2.json(), true);
   });
 });

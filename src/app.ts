@@ -29,12 +29,13 @@ const setupAppContext =
 
 const checkTodoExistence: MiddlewareHandler = async (
   ctx: Context<{ Variables: AppVariables }>,
-  next: Next,
+  next: Next
 ) => {
   const todoManager = ctx.get("todoManager");
   const todoId = Number(ctx.req.param("todoId"));
+  const userId = Number(ctx.get("userId"));
 
-  if (!(await todoManager.hasTodo(0, todoId))) {
+  if (!(await todoManager.hasTodo(userId, todoId))) {
     return ctx.json({ message: "Todo is not exist!" }, 404);
   }
 
@@ -43,13 +44,14 @@ const checkTodoExistence: MiddlewareHandler = async (
 
 const checkTaskExistence: MiddlewareHandler = async (
   ctx: Context<{ Variables: AppVariables }>,
-  next: Next,
+  next: Next
 ) => {
   const taskManager = ctx.get("taskManager");
+  const userId = Number(ctx.get("userId"));
   const todoId = Number(ctx.req.param("todoId"));
   const taskId = Number(ctx.req.param("taskId"));
 
-  if (!(await taskManager.hasTask(0, todoId, taskId))) {
+  if (!(await taskManager.hasTask(userId, todoId, taskId))) {
     return ctx.json({ message: "Task is not exist!" }, 404);
   }
 
@@ -58,7 +60,7 @@ const checkTaskExistence: MiddlewareHandler = async (
 
 const authenticateUserAndSetUserContext: MiddlewareHandler = async (
   ctx: Context<{ Variables: AppVariables }>,
-  next: Next,
+  next: Next
 ) => {
   const sessionId = Number(getCookie(ctx, "sessionId"));
   const sessionManager = ctx.get("sessionManager");
@@ -86,7 +88,7 @@ const createApp = (appContext: AppContext) => {
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
       credentials: true,
-    }),
+    })
   );
   app.post("/signup", handleSignUp);
   app.post("/login", handleLogin);
