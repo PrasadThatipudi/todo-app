@@ -50,4 +50,19 @@ const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
   return ctx.json(todoJSON, 201);
 };
 
-export { handleAddTodo, serveTodos };
+const handleRemoveTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
+  const todoManager = ctx.get("todoManager");
+  const todoId = Number(ctx.req.param("todoId"));
+  const userId = Number(ctx.get("userId")!);
+
+  try {
+    await todoManager.removeTodo(userId, todoId);
+    return ctx.json({ message: "Todo removed successfully" }, 200);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Todo not found") {
+      return ctx.json({ message: "Todo not found" }, 404);
+    }
+  }
+};
+
+export { handleAddTodo, serveTodos, handleRemoveTodo };

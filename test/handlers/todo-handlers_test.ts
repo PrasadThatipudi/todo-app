@@ -567,3 +567,187 @@ describe("handleAddTodo", () => {
     assertSpyCallArgs(taskManagerGet, 2, [1, 2]);
   });
 });
+
+describe("handleRemoveTodo", () => {
+  it("should remove a todo and return 204", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+
+    const todoId = 0;
+    const todo = createTodo(todoId, "Todo to be removed", userId);
+    await todoCollection.insertOne(todo);
+
+    const todoManagerRemove = stub(todoManager, "removeTodo", () =>
+      Promise.resolve(true)
+    );
+
+    const app = createApp(appContext);
+    const response = await app.request(`/todos/${todoId}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
+
+    assertEquals(response.status, 200);
+    assertSpyCallArgs(todoManagerRemove, 0, [userId, todoId]);
+    const status = await response.json();
+    assertEquals(status, { message: "Todo removed successfully" });
+  });
+
+  it("should return 404 if todo does not exist", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+
+    const todoId = 999; // Non-existent todo ID
+    const app = createApp(appContext);
+    const response = await app.request(`/todos/${todoId}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
+
+    assertEquals(response.status, 404);
+    const errorJson = await response.json();
+    assertEquals(errorJson.message, "Todo not found");
+  });
+
+  it("should return 404 if user does not own the todo", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+
+    const todoId = 0;
+    const todo = createTodo(todoId, "Todo owned by another user", 1);
+    await todoCollection.insertOne(todo);
+
+    const app = createApp(appContext);
+    const response = await app.request(`/todos/${todoId}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
+
+    assertEquals(response.status, 404);
+    const errorJson = await response.json();
+    assertEquals(errorJson.message, "Todo not found");
+  });
+
+  it("should be able to remove todo for different users", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const userManager = UserManager.init(
+      () => 1,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 1,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      userManager,
+      sessionManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    // Create a todo for userId 0
+    const todoId1 = await todoManager.addTodo(0, "Todo for User 0");
+
+    // Create a todo for userId 1
+    const userId2 = await userManager.createUser("user2", "password");
+    const sessionId2 = await sessionManager.createSession(userId2);
+    const todoId2 = await todoManager.addTodo(userId2, "Todo for User 1");
+
+    // Remove the todo for userId 0
+    const response1 = await app.request(`/todos/${todoId1}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
+    assertEquals(response1.status, 200);
+    const deletionStatus1 = await response1.json();
+    assertEquals(deletionStatus1, { message: "Todo removed successfully" });
+
+    // Verify the todo is removed
+    const response2 = await app.request(`/todos`, {
+      method: "GET",
+      headers: { Cookie: `sessionId=${sessionId}` },
+    });
+    assertEquals(response2.status, 200);
+    const todosJSON1 = await response2.json();
+    assertEquals(todosJSON1.length, 0);
+
+    // Remove the todo for userId 1
+    const response3 = await app.request(`/todos/${todoId2}`, {
+      method: "DELETE",
+      headers: { Cookie: `sessionId=${sessionId2}` },
+    });
+    assertEquals(response3.status, 200);
+    const deletionStatus2 = await response3.json();
+    assertEquals(deletionStatus2, { message: "Todo removed successfully" });
+
+    // Verify the todo is removed
+    const response4 = await app.request(`/todos`, {
+      method: "GET",
+      headers: { Cookie: `sessionId=${sessionId2}` },
+    });
+    assertEquals(response4.status, 200);
+    const todosJSON2 = await response4.json();
+    assertEquals(todosJSON2.length, 0);
+  });
+});

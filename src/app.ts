@@ -1,7 +1,11 @@
 import { Context, Hono, MiddlewareHandler, Next } from "hono";
 import { logger } from "hono/logger";
 import { AppContext, AppVariables } from "./types.ts";
-import { handleAddTodo, serveTodos } from "./handlers/todo-handlers.ts";
+import {
+  handleAddTodo,
+  serveTodos,
+  handleRemoveTodo,
+} from "./handlers/todo-handlers.ts";
 import {
   handleAddTask,
   handleDeleteTask,
@@ -98,6 +102,7 @@ const createApp = (appContext: AppContext) => {
   app.post("/todos", handleAddTodo);
   app.use("/todos/:todoId/tasks", checkTodoExistence);
   app.post("/todos/:todoId/tasks", handleAddTask);
+  app.delete("/todos/:todoId", handleRemoveTodo);
 
   app.use("/todos/:todoId/tasks/:taskId", checkTodoExistence);
   app.use("/todos/:todoId/tasks/:taskId", checkTaskExistence);
