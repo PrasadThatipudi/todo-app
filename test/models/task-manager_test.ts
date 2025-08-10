@@ -349,7 +349,7 @@ describe("addTask", () => {
         await taskManager.addTask(userId, todoId, "test-task-1", NaN);
       },
       Error,
-      "Invalid priority value"
+      "Priority must be a number"
     );
 
     await assertRejects(
@@ -357,7 +357,7 @@ describe("addTask", () => {
         await taskManager.addTask(userId, todoId, "test-task-1", Infinity);
       },
       Error,
-      "Invalid priority value"
+      "Priority must be a number"
     );
 
     await assertRejects(
@@ -374,6 +374,21 @@ describe("addTask", () => {
       },
       Error,
       "Priority cannot be negative"
+    );
+
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
+  });
+
+  it("should throw an error if priority is not a number", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    await assertRejects(
+      async () => {
+        // deno-lint-ignore ban-ts-comment
+        // @ts-ignore
+        await taskManager.addTask(userId, todoId, "test-task-1", "high");
+      },
+      Error,
+      "Priority must be a number!"
     );
 
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);

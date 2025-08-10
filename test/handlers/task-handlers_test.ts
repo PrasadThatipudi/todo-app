@@ -56,12 +56,13 @@ const createTask = (
   description: string,
   done = false,
   todo_id = todoId,
-  user_id = userId
+  user_id = userId,
+  priority = 0
 ): Task => ({
   task_id,
   description,
   done,
-  priority: 0,
+  priority,
   todo_id,
   user_id,
 });
@@ -120,8 +121,8 @@ describe("handleAddTask", () => {
       priority: 0,
     };
     assertEquals(jsonResponse, expectedTask);
-    assertSpyCallArgs(addTaskStub, 0, [0, 0, "Test Task"]);
-    assertSpyCallArgs(getTaskStub, 0, [0, 0, 0]);
+    assertSpyCallArgs(addTaskStub, 0, [userId, todoId, "Test Task", undefined]);
+    assertSpyCallArgs(getTaskStub, 0, [userId, todoId, 0]);
   });
 
   it("should respond with 404 if todoId is not exist", async () => {
@@ -180,9 +181,6 @@ describe("handleAddTask", () => {
       userCollection
     );
 
-    const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
-    const todoId2 = await todoManager.addTodo(userId, "Test Todo 2");
-
     const appContext = {
       todoManager,
       taskManager,
@@ -191,7 +189,14 @@ describe("handleAddTask", () => {
       logger: silentLogger,
     };
     const app = createApp(appContext);
-    const addTaskStub = stub(taskManager, "addTask", () => Promise.resolve(0));
+
+    const todoId1 = await todoManager.addTodo(userId, "Test Todo 1");
+    const todoId2 = await todoManager.addTodo(userId, "Test Todo 2");
+
+    const nextId = idGenerator(0);
+    const addTaskStub = stub(taskManager, "addTask", () =>
+      Promise.resolve(nextId())
+    );
     const getTaskStub = stub(
       taskManager,
       "getTaskById",
@@ -221,8 +226,14 @@ describe("handleAddTask", () => {
 
     assertEquals(response1.status, 201);
     assertEquals(response2.status, 201);
-    assertSpyCallArgs(addTaskStub, 0, [0, 0, "Test Task 1"]);
-    assertSpyCallArgs(addTaskStub, 1, [0, 1, "Test Task 2"]);
+
+    const expectedArgs1 = [userId, todoId1, "Test Task 1", undefined];
+    const expectedArgs2 = [userId, todoId2, "Test Task 2", undefined];
+    assertSpyCallArgs(addTaskStub, 0, expectedArgs1);
+    assertSpyCallArgs(addTaskStub, 1, expectedArgs2);
+
+    assertSpyCallArgs(getTaskStub, 0, [userId, todoId1, 0]);
+    assertSpyCallArgs(getTaskStub, 1, [userId, todoId2, 1]);
 
     const jsonResponse1 = await response1.json();
     const jsonResponse2 = await response2.json();
@@ -231,8 +242,6 @@ describe("handleAddTask", () => {
     const expectedTask2: Task = createTask(1, "Test Task 2");
     assertEquals(jsonResponse1, expectedTask1);
     assertEquals(jsonResponse2, expectedTask2);
-    assertSpyCallArgs(getTaskStub, 0, [0, 0, 0]);
-    assertSpyCallArgs(getTaskStub, 1, [0, 1, 0]);
   });
 
   it("should allow adding multiple tasks to a todo", async () => {
@@ -289,8 +298,10 @@ describe("handleAddTask", () => {
     });
     assertEquals(response1.status, 201);
     assertEquals(response2.status, 201);
-    assertSpyCallArgs(addTaskStub, 0, [0, todoId, "Test Task 1"]);
-    assertSpyCallArgs(addTaskStub, 1, [0, todoId, "Test Task 2"]);
+    const expectedArgs1 = [0, todoId, "Test Task 1", undefined];
+    const expectedArgs2 = [0, todoId, "Test Task 2", undefined];
+    assertSpyCallArgs(addTaskStub, 0, expectedArgs1);
+    assertSpyCallArgs(addTaskStub, 1, expectedArgs2);
     assertSpyCallArgs(getTaskStub, 0, [0, todoId, 0]);
     assertSpyCallArgs(getTaskStub, 1, [0, todoId, 1]);
 
@@ -348,7 +359,8 @@ describe("handleAddTask", () => {
     });
 
     assertEquals(response1.status, 201);
-    assertSpyCallArgs(addTaskStub, 0, [userId1, todoId1, "User 1 Task"]);
+    const expectedArgs1 = [userId1, todoId1, "User 1 Task", undefined];
+    assertSpyCallArgs(addTaskStub, 0, expectedArgs1);
     assertSpyCallArgs(getTaskStub, 0, [userId1, todoId1, 0]);
     const jsonResponse1 = await response1.json();
     assertEquals(jsonResponse1, createTask(0, "User 1 Task"));
@@ -367,10 +379,111 @@ describe("handleAddTask", () => {
     });
 
     assertEquals(response2.status, 201);
-    assertSpyCallArgs(addTaskStub, 1, [userId2, todoId2, "User 2 Task"]);
+    const expectedArgs2 = [userId2, todoId2, "User 2 Task", undefined];
+    assertSpyCallArgs(addTaskStub, 1, expectedArgs2);
     assertSpyCallArgs(getTaskStub, 1, [userId2, todoId2, 1]);
     const jsonResponse2 = await response2.json();
     assertEquals(jsonResponse2, createTask(1, "User 2 Task"));
+  });
+
+  it("should allow adding tasks with priority", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const todoManager = TodoManager.init(idGenerator(0), todoCollection);
+    const taskManager = TaskManager.init(idGenerator(0), taskCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      sessionManager,
+      userManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const todoId = await todoManager.addTodo(0, "Test Todo");
+    const taskDescription = "Test Task with Priority";
+    const taskPriority = 5;
+
+    const addTaskStub = stub(taskManager, "addTask", () => Promise.resolve(0));
+    const getTaskStub = stub(taskManager, "getTaskById", () =>
+      Promise.resolve(
+        createTask(0, taskDescription, false, todoId, userId, taskPriority)
+      )
+    );
+
+    const response = await app.request(`/todos/${todoId}/tasks`, {
+      method: "POST",
+      body: JSON.stringify({
+        description: taskDescription,
+        priority: taskPriority,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
+    });
+
+    assertEquals(response.status, 201);
+    const expectedArgs = [userId, todoId, taskDescription, taskPriority];
+    assertSpyCallArgs(addTaskStub, 0, expectedArgs);
+    assertSpyCallArgs(getTaskStub, 0, [userId, todoId, 0]);
+
+    const jsonResponse = await response.json();
+    assertEquals(
+      jsonResponse,
+      createTask(0, taskDescription, false, todoId, userId, taskPriority)
+    );
+  });
+
+  it("should respond with 400 if priority is not a number", async () => {
+    const todoManager = TodoManager.init(() => 0, todoCollection);
+    const taskManager = TaskManager.init(() => 0, taskCollection);
+    const userManager = UserManager.init(
+      () => 0,
+      testEncrypt,
+      verify,
+      userCollection
+    );
+    const sessionManager = SessionManager.init(
+      () => 0,
+      sessionCollection,
+      userCollection
+    );
+    const appContext = {
+      todoManager,
+      taskManager,
+      sessionManager,
+      userManager,
+      logger: silentLogger,
+    };
+    const app = createApp(appContext);
+
+    const todoId = await todoManager.addTodo(0, "Test Todo");
+    const response = await app.request(`/todos/${todoId}/tasks`, {
+      method: "POST",
+      body: JSON.stringify({
+        description: "Test Task",
+        priority: "high", // Invalid priority
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: `sessionId=${sessionId}`,
+      },
+    });
+
+    assertEquals(response.status, 400);
+    const jsonResponse = await response.json();
+    assertEquals(jsonResponse, { message: "Priority must be a number!" });
   });
 });
 

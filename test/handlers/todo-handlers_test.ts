@@ -374,7 +374,7 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title is required");
+    assertEquals(errorJson.message, "Title is required!");
   });
 
   it("should return 400 if title is not a string", async () => {
@@ -411,7 +411,7 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title must be a string.");
+    assertEquals(errorJson.message, "Title must be a string!");
   });
 
   it("should return 400 if title is empty string", async () => {
@@ -448,7 +448,7 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title should not be empty.");
+    assertEquals(errorJson.message, "Title should not be empty!");
   });
 
   it("should return 400 if title is empty after trim", async () => {
@@ -485,7 +485,7 @@ describe("handleAddTodo", () => {
 
     assertEquals(response.status, 400);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Title should not be empty.");
+    assertEquals(errorJson.message, "Title should not be empty!");
   });
 
   it("should able to add todo for different users", async () => {
@@ -643,7 +643,7 @@ describe("handleRemoveTodo", () => {
 
     assertEquals(response.status, 404);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Todo not found");
+    assertEquals(errorJson.message, "Todo not found!");
   });
 
   it("should return 404 if user does not own the todo", async () => {
@@ -680,7 +680,7 @@ describe("handleRemoveTodo", () => {
 
     assertEquals(response.status, 404);
     const errorJson = await response.json();
-    assertEquals(errorJson.message, "Todo not found");
+    assertEquals(errorJson.message, "Todo not found!");
   });
 
   it("should be able to remove todo for different users", async () => {

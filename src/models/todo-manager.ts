@@ -37,10 +37,10 @@ class TodoManager {
 
   async addTodo(userId: number, potentialTitle: string): Promise<number> {
     const title = potentialTitle.trim();
-    if (!title.trim()) throw new Error("Title cannot be empty");
+    if (!title.trim()) throw new Error("Title cannot be empty!");
 
     if (await this.hasTodo(userId, title))
-      throw new Error("Todo with this title already exists");
+      throw new Error("Todo with this title already exists!");
 
     const todoId = this.todoIdGenerator();
 
@@ -55,7 +55,7 @@ class TodoManager {
 
   async removeTodo(userId: number, todoId: number): Promise<boolean> {
     if (!(await this.hasTodo(userId, todoId))) {
-      throw new Error("Todo not found");
+      throw new Error("Todo not found!");
     }
 
     return (

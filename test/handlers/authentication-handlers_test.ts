@@ -229,7 +229,7 @@ describe("sign-up", () => {
     response = await app.request(secondReq);
     assertEquals(response.status, 409);
     assertEquals(await response.json(), {
-      message: "User already exists",
+      message: "User already exists!",
     });
   });
 

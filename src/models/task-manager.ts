@@ -58,8 +58,12 @@ class TaskManager {
     return matchedTasks.length > 0;
   }
 
-  private isPriorityInvalid(priority: number) {
-    return Object.is(priority, NaN) || Object.is(priority, Infinity);
+  private isPriorityNotANumber(priority: number) {
+    return (
+      typeof priority !== "number" ||
+      Object.is(priority, NaN) ||
+      Object.is(priority, Infinity)
+    );
   }
 
   private isPriorityNegative(priority: number) {
@@ -73,16 +77,16 @@ class TaskManager {
     priority: number = 0
   ): Promise<number | null> {
     const description = potentialDescription.trim();
-    if (!description) throw new Error("Task description cannot be empty");
+    if (!description) throw new Error("Task description cannot be empty!");
 
     if (this.isPriorityNegative(priority))
-      throw new Error("Priority cannot be negative");
+      throw new Error("Priority cannot be negative!");
 
-    if (this.isPriorityInvalid(priority))
-      throw new Error("Invalid priority value");
+    if (this.isPriorityNotANumber(priority))
+      throw new Error("Priority must be a number!");
 
     if (await this.hasTask(userId, todoId, description))
-      throw new Error("Task description already exists");
+      throw new Error("Task description already exists!");
 
     const taskId = this.idGenerator();
     const newTask: Task = {
@@ -104,7 +108,7 @@ class TaskManager {
     taskId: number
   ): Promise<boolean> {
     if (!(await this.hasTask(userId, todoId, taskId)))
-      throw new Error("Task not found");
+      throw new Error("Task not found!");
 
     const task = await this.getTaskById(userId, todoId, taskId);
 
@@ -122,7 +126,7 @@ class TaskManager {
     taskId: number
   ): Promise<boolean> {
     if (!(await this.hasTask(userId, todoId, taskId)))
-      throw new Error("Task not found");
+      throw new Error("Task not found!");
 
     const deletionResult = await this.collection.deleteOne({
       user_id: userId,

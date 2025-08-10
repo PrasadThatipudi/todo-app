@@ -14,7 +14,7 @@ const handleSignUp = async (ctx: Context<{ Variables: AppVariables }>) => {
     await userManager.createUser(username, password);
   } catch (error) {
     if (error instanceof Error && error.cause === "DuplicateUser")
-      return ctx.json({ message: "User already exists" }, 409);
+      return ctx.json({ message: "User already exists!" }, 409);
 
     if (error instanceof Error)
       return ctx.json({ message: error.message }, 400);

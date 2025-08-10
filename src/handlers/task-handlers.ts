@@ -6,11 +6,24 @@ const handleAddTask = async (ctx: Context<{ Variables: AppVariables }>) => {
   const userId = Number(ctx.get("userId")!);
   const todoId = Number(ctx.req.param("todoId"));
 
-  const body = await ctx.req.json();
-  const description = body.description;
-  const taskId = await taskManager.addTask(userId, todoId, description);
+  const { description, priority } = await ctx.req.json();
+  try {
+    const taskId = await taskManager.addTask(
+      userId,
+      todoId,
+      description,
+      priority
+    );
 
-  return ctx.json(await taskManager.getTaskById(userId, todoId, taskId!), 201);
+    return ctx.json(
+      await taskManager.getTaskById(userId, todoId, taskId!),
+      201
+    );
+  } catch (error) {
+    if (error instanceof Error) {
+      return ctx.json({ message: error.message }, 400);
+    }
+  }
 };
 
 const handleToggleTask = async (ctx: Context<{ Variables: AppVariables }>) => {
