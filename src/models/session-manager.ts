@@ -5,13 +5,13 @@ class SessionManager {
   private constructor(
     private readonly idGenerator: () => number,
     private readonly sessionCollection: Collection<Session>,
-    private readonly userCollection: Collection<User>,
+    private readonly userCollection: Collection<User>
   ) {}
 
   static init(
     idGenerator: () => number,
     sessionCollection: Collection<Session>,
-    userCollection: Collection<User>,
+    userCollection: Collection<User>
   ): SessionManager {
     return new SessionManager(idGenerator, sessionCollection, userCollection);
   }
@@ -41,9 +41,8 @@ class SessionManager {
   }
 
   async deleteSession(sessionId: number): Promise<boolean> {
-    if (!(await this.hasSession(sessionId))) {
+    if (!(await this.hasSession(sessionId)))
       throw new Error("Session not found!");
-    }
 
     return (await this.sessionCollection.deleteOne({ session_id: sessionId }))
       .acknowledged;

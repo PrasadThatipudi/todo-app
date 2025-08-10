@@ -3,12 +3,12 @@ import { Todo } from "../types.ts";
 class TodoManager {
   constructor(
     private readonly todoIdGenerator: () => number,
-    private readonly todoCollection: Collection<Todo>,
+    private readonly todoCollection: Collection<Todo>
   ) {}
 
   static init(
     todoIdGenerator: () => number,
-    todoCollection: Collection<Todo>,
+    todoCollection: Collection<Todo>
   ): TodoManager {
     return new TodoManager(todoIdGenerator, todoCollection);
   }
@@ -39,9 +39,8 @@ class TodoManager {
     const title = potentialTitle.trim();
     if (!title.trim()) throw new Error("Title cannot be empty");
 
-    if (await this.hasTodo(userId, title)) {
+    if (await this.hasTodo(userId, title))
       throw new Error("Todo with this title already exists");
-    }
 
     const todoId = this.todoIdGenerator();
 

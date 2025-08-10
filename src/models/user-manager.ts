@@ -7,22 +7,22 @@ class UserManager {
     private readonly encryptPassword: (password: string) => Promise<string>,
     private readonly passwordVerifier: (
       password: string,
-      hash: string,
+      hash: string
     ) => Promise<boolean>,
-    private readonly userCollection: Collection<User>,
+    private readonly userCollection: Collection<User>
   ) {}
 
   static init(
     idGenerator: () => number,
     encryptPassword: (password: string) => Promise<string>,
     passwordVerifier: (password: string, hash: string) => Promise<boolean>,
-    userCollection: Collection<User>,
+    userCollection: Collection<User>
   ): UserManager {
     return new UserManager(
       idGenerator,
       encryptPassword,
       passwordVerifier,
-      userCollection,
+      userCollection
     );
   }
 
@@ -34,7 +34,7 @@ class UserManager {
     const userId = (
       await this.userCollection.findOne(
         { username },
-        { projection: { user_id: 1 } },
+        { projection: { user_id: 1 } }
       )
     )?.user_id;
 
@@ -50,19 +50,16 @@ class UserManager {
   }
 
   async createUser(username: string, password: string): Promise<number> {
-    if (!username.trim() || !password.trim()) {
+    if (!username.trim() || !password.trim())
       throw new Error("Username and password cannot be empty!");
-    }
 
-    if (username.includes(" ")) {
+    if (username.includes(" "))
       throw new Error("Username cannot contain spaces!");
-    }
 
-    if (await this.hasUser(username)) {
+    if (await this.hasUser(username))
       throw new Error("Username is already exists!", {
         cause: "DuplicateUser",
       });
-    }
 
     const userId = this.idGenerator();
     const user: User = {

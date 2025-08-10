@@ -28,17 +28,14 @@ const handleAddTodo = async (ctx: Context<{ Variables: AppVariables }>) => {
   const userId = Number(ctx.get("userId")!);
   const body = await ctx.req.json();
 
-  if (body.title === undefined) {
+  if (body.title === undefined)
     return ctx.json({ message: "Title is required" }, 400);
-  }
 
-  if (typeof body.title !== "string") {
+  if (typeof body.title !== "string")
     return ctx.json({ message: "Title must be a string." }, 400);
-  }
 
-  if (body.title.trim() === "") {
+  if (body.title.trim() === "")
     return ctx.json({ message: "Title should not be empty." }, 400);
-  }
 
   const addedTodoId = await todoManager.addTodo(userId, body.title);
   const todo = (await todoManager.getTodoById(userId, addedTodoId))!;

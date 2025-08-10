@@ -39,11 +39,12 @@ const createTestTask = (
   task_id: number,
   description: string,
   todoId: number = 0,
-  done: boolean = false,
+  done: boolean = false
 ): Task => ({
   task_id,
   description,
   done,
+  priority: 0,
   user_id: userId,
   todo_id: todoId,
 });
@@ -70,11 +71,11 @@ describe("getAllTasks", () => {
     assertEquals(tasks.length, 2);
     assertObjectMatch(
       tasks[0] as unknown as Record<string, unknown>,
-      task1 as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>
     );
     assertObjectMatch(
       tasks[1] as unknown as Record<string, unknown>,
-      task2 as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>
     );
   });
 
@@ -94,13 +95,13 @@ describe("getAllTasks", () => {
     assertEquals(tasksOfTodo1.length, 1);
     assertObjectMatch(
       tasksOfTodo1[0] as unknown as Record<string, unknown>,
-      task1 as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>
     );
 
     assertEquals(tasksOfTodo2.length, 1);
     assertObjectMatch(
       tasksOfTodo2[0] as unknown as Record<string, unknown>,
-      task2 as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>
     );
   });
 
@@ -118,7 +119,7 @@ describe("getAllTasks", () => {
     assertEquals(tasksOfUser1.length, 1);
     assertObjectMatch(
       tasksOfUser1[0] as unknown as Record<string, unknown>,
-      task1 as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>
     );
 
     const tasksOfUser2 = await taskManager.getAllTasks(userId + 1);
@@ -144,7 +145,7 @@ describe("getTaskById", () => {
     const fetchedTask = await taskManager.getTaskById(
       userId + 1,
       todoId,
-      taskId,
+      taskId
     );
     assertEquals(fetchedTask, null);
   });
@@ -157,7 +158,7 @@ describe("getTaskById", () => {
     const newTask = await taskManager.getTaskById(userId, todoId, task.task_id);
     assertObjectMatch(
       newTask! as unknown as Record<string, unknown>,
-      task as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>
     );
   });
 });
@@ -190,14 +191,6 @@ describe("hasTask", () => {
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
     assert(await taskManager.hasTask(userId, todoId, "Test Task"));
   });
-
-  // it("should return true if the description is existed but case is different", async () => {
-  //   const taskManager = TaskManager.init(() => 0, collection);
-
-  //   await taskManager.addTask(userId, todoId,userId, todoId, "Test Task");
-
-  //   assert(await taskManager.hasTask(userId, todoId, "test task"));
-  // });
 });
 
 describe("addTask", () => {
@@ -207,6 +200,7 @@ describe("addTask", () => {
       task_id: 0,
       description: "test-task-1",
       done: false,
+      priority: 0,
       user_id: userId,
       todo_id: todoId,
     };
@@ -215,7 +209,7 @@ describe("addTask", () => {
 
     assertObjectMatch(
       addedTask! as unknown as Record<string, unknown>,
-      task as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>
     );
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
@@ -226,13 +220,13 @@ describe("addTask", () => {
     const taskId = await taskManager.addTask(
       userId,
       todoId,
-      "  test-task-1  ",
+      "  test-task-1  "
     )!;
     const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
 
     assertObjectMatch(
       addedTask! as unknown as Record<string, unknown>,
-      task as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>
     );
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
   });
@@ -253,12 +247,12 @@ describe("addTask", () => {
     assertEquals((await taskManager1.getAllTasks(userId, todo1)).length, 1);
     assertObjectMatch(
       addedTask1! as unknown as Record<string, unknown>,
-      task1 as unknown as Record<string, unknown>,
+      task1 as unknown as Record<string, unknown>
     );
     assertEquals((await taskManager2.getAllTasks(userId, todo2)).length, 1);
     assertObjectMatch(
       addedTask2! as unknown as Record<string, unknown>,
-      task2 as unknown as Record<string, unknown>,
+      task2 as unknown as Record<string, unknown>
     );
   });
 
@@ -270,7 +264,7 @@ describe("addTask", () => {
         await taskManager.addTask(userId, todoId, "");
       },
       Error,
-      "Task description cannot be empty",
+      "Task description cannot be empty"
     );
 
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
@@ -283,7 +277,7 @@ describe("addTask", () => {
         await taskManager.addTask(userId, todoId, "   ");
       },
       Error,
-      "Task description cannot be empty",
+      "Task description cannot be empty"
     );
 
     assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
@@ -298,7 +292,7 @@ describe("addTask", () => {
         await taskManager1.addTask(userId, todoId, "test-task-1");
       },
       Error,
-      "Task description already exists",
+      "Task description already exists"
     );
 
     assertEquals((await taskManager1.getAllTasks(userId, todoId)).length, 1);
@@ -311,11 +305,11 @@ describe("addTask", () => {
         await taskManager2.addTask(userId, todoId + 1, "test-task-1");
       },
       Error,
-      "Task description already exists",
+      "Task description already exists"
     );
     assertEquals(
       (await taskManager2.getAllTasks(userId, todoId + 1)).length,
-      1,
+      1
     );
 
     // Test with a different userId
@@ -326,22 +320,88 @@ describe("addTask", () => {
         await taskManager3.addTask(userId + 1, todoId, "test-task-1");
       },
       Error,
-      "Task description already exists",
+      "Task description already exists"
     );
     assertEquals(
       (await taskManager3.getAllTasks(userId + 1, todoId)).length,
-      1,
+      1
     );
   });
 
-  // it("should return null if task description already exists | case sensitive", async () => {
-  //   const taskManager = TaskManager.init(() => 0, collection);
-  //   await taskManager.addTask(userId, todoId,userId, todoId, "test-task-1");
-  //   const addedTask = await taskManager.addTask(userId, todoId,userId, todoId, "Test-Task-1");
+  it("should throw an error if priority is a negative number", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "test-task-1", -1);
+      },
+      Error,
+      "Priority cannot be negative"
+    );
 
-  //   assertEquals(addedTask, null);
-  //   assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
-  // });
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
+  });
+
+  it("should throw an error if priority is NaN, -0, Infinity or -Infinity", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "test-task-1", NaN);
+      },
+      Error,
+      "Invalid priority value"
+    );
+
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "test-task-1", Infinity);
+      },
+      Error,
+      "Invalid priority value"
+    );
+
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "test-task-1", -Infinity);
+      },
+      Error,
+      "Priority cannot be negative"
+    );
+
+    await assertRejects(
+      async () => {
+        await taskManager.addTask(userId, todoId, "test-task-1", -0);
+      },
+      Error,
+      "Priority cannot be negative"
+    );
+
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 0);
+  });
+
+  it("should add task with priority 0 if not specified", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const taskId = await taskManager.addTask(userId, todoId, "test-task-1");
+    const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
+
+    assertEquals(addedTask!.priority, 0);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+  });
+
+  it("should add task with specified priority", async () => {
+    const taskManager = TaskManager.init(() => 0, collection);
+    const priority = 5;
+    const taskId = await taskManager.addTask(
+      userId,
+      todoId,
+      "test-task-1",
+      priority
+    );
+    const addedTask = await taskManager.getTaskById(userId, todoId, taskId!);
+
+    assertEquals(addedTask!.priority, priority);
+    assertEquals((await taskManager.getAllTasks(userId, todoId)).length, 1);
+  });
 });
 
 describe("toggleTaskDone", () => {
@@ -355,13 +415,13 @@ describe("toggleTaskDone", () => {
     await taskManager.toggleTaskDone(userId, todoId, taskId!);
     assertEquals(
       (await taskManager.getTaskById(userId, todoId, taskId!))!.done,
-      true,
+      true
     );
 
     await taskManager.toggleTaskDone(userId, todoId, taskId!);
     assertEquals(
       (await taskManager.getTaskById(userId, todoId, taskId!))!.done,
-      false,
+      false
     );
   });
 
@@ -382,12 +442,12 @@ describe("toggleTaskDone", () => {
     assert(await taskManager.toggleTaskDone(userId, todoId1, task1Id!));
     assertEquals(
       (await taskManager.getTaskById(userId, todoId1, task1Id!))!.done,
-      true,
+      true
     );
     assert(await taskManager.toggleTaskDone(userId, todoId2, task2Id!));
     assertEquals(
       (await taskManager.getTaskById(userId, todoId2, task2Id!))!.done,
-      true,
+      true
     );
   });
 
@@ -397,19 +457,19 @@ describe("toggleTaskDone", () => {
     const hasTaskStub = stub(
       taskManager,
       "hasTask",
-      async () => await Promise.resolve(false),
+      async () => await Promise.resolve(false)
     );
 
     assertRejects(
       async () => await taskManager.toggleTaskDone(userId, todoId, 1),
       Error,
-      "Task not found",
+      "Task not found"
     );
 
     assertRejects(
       async () => await taskManager.toggleTaskDone(userId + 1, todoId + 1, 1),
       Error,
-      "Task not found",
+      "Task not found"
     );
     assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
     assertSpyCallArgs(hasTaskStub, 1, [userId + 1, todoId + 1, 1]);
@@ -420,12 +480,12 @@ describe("toggleTaskDone", () => {
     const hasTaskStub = stub(
       taskManager,
       "hasTask",
-      async () => await Promise.resolve(true),
+      async () => await Promise.resolve(true)
     );
     const getTaskByIdStub = stub(
       taskManager,
       "getTaskById",
-      async () => await Promise.resolve(createTestTask(1, "test-task-1")),
+      async () => await Promise.resolve(createTestTask(1, "test-task-1"))
     );
 
     await taskManager.toggleTaskDone(userId, todoId, 1);
@@ -456,7 +516,7 @@ describe("toggleTaskDone", () => {
     await taskManager.toggleTaskDone(userId1, todoId1, taskId1!);
     assertEquals(
       (await taskManager.getTaskById(userId1, todoId1, taskId1!))!.done,
-      true,
+      true
     );
 
     const taskId2 = await taskManager.addTask(userId2, todoId2, "test-task-2")!;
@@ -466,7 +526,7 @@ describe("toggleTaskDone", () => {
     await taskManager.toggleTaskDone(userId2, todoId2, taskId2!);
     assertEquals(
       (await taskManager.getTaskById(userId2, todoId2, taskId2!))!.done,
-      true,
+      true
     );
   });
 });
@@ -477,7 +537,7 @@ describe("removeTask", () => {
     const hasTaskStub = stub(
       taskManager,
       "hasTask",
-      async () => await Promise.resolve(false),
+      async () => await Promise.resolve(false)
     );
 
     await assertRejects(
@@ -485,7 +545,7 @@ describe("removeTask", () => {
         await taskManager.removeTask(userId, todoId, 1);
       },
       Error,
-      "Task not found",
+      "Task not found"
     );
 
     await assertRejects(
@@ -493,7 +553,7 @@ describe("removeTask", () => {
         await taskManager.removeTask(userId + 1, todoId + 1, 1);
       },
       Error,
-      "Task not found",
+      "Task not found"
     );
 
     assertSpyCallArgs(hasTaskStub, 0, [userId, todoId, 1]);
@@ -555,11 +615,11 @@ describe("removeTask", () => {
 
     assertEquals(
       await taskManager.getTaskById(userId, todoId1, task1Id!),
-      null,
+      null
     );
     assertEquals(
       await taskManager.getTaskById(userId, todoId2, task2Id!),
-      null,
+      null
     );
   });
 
@@ -579,12 +639,12 @@ describe("removeTask", () => {
       createTestTask(taskId1!, "test-task-1", todoId1) as unknown as Record<
         string,
         unknown
-      >,
+      >
     );
     await taskManager.removeTask(userId1, todoId1, taskId1!);
     assertEquals(
       await taskManager.getTaskById(userId1, todoId1, taskId1!),
-      null,
+      null
     );
 
     const taskId2 = await taskManager.addTask(userId2, todoId2, "test-task-2")!;
@@ -597,12 +657,12 @@ describe("removeTask", () => {
     };
     assertObjectMatch(
       task2! as unknown as Record<string, unknown>,
-      expectedTask2 as unknown as Record<string, unknown>,
+      expectedTask2 as unknown as Record<string, unknown>
     );
     await taskManager.removeTask(userId2, todoId2, taskId2!);
     assertEquals(
       await taskManager.getTaskById(userId2, todoId2, taskId2!),
-      null,
+      null
     );
   });
 });

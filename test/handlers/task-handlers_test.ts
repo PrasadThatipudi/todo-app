@@ -61,6 +61,7 @@ const createTask = (
   task_id,
   description,
   done,
+  priority: 0,
   todo_id,
   user_id,
 });
@@ -93,6 +94,7 @@ describe("handleAddTask", () => {
       user_id: userId,
       description: "Test Task",
       done: false,
+      priority: 0,
     };
     const addTaskStub = stub(taskManager, "addTask", () => Promise.resolve(0));
     const getTaskStub = stub(taskManager, "getTaskById", () =>
@@ -115,6 +117,7 @@ describe("handleAddTask", () => {
       user_id: userId,
       description: "Test Task",
       done: false,
+      priority: 0,
     };
     assertEquals(jsonResponse, expectedTask);
     assertSpyCallArgs(addTaskStub, 0, [0, 0, "Test Task"]);

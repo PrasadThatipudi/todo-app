@@ -10,9 +10,8 @@ import * as config from "./src/config.ts";
 import "https://deno.land/x/dotenv/load.ts";
 
 const connectToMongoDB = async (uri: string) => {
-  if (!uri) {
-    throw new Error("MONGO_URI environment variable is not set");
-  }
+  if (!uri) throw new Error("MONGO_URI environment variable is not set");
+
   const client = new MongoClient(uri);
   try {
     await client.connect();
@@ -32,16 +31,16 @@ const main = async () => {
   const database = client.db(config.DB_NAME);
 
   const todoCollection: Collection<Todo> = database.collection(
-    config.TODOS_COLLECTION,
+    config.TODOS_COLLECTION
   );
   const taskCollection: Collection<Task> = database.collection(
-    config.TASKS_COLLECTION,
+    config.TASKS_COLLECTION
   );
   const userCollection: Collection<User> = database.collection(
-    config.USERS_COLLECTION,
+    config.USERS_COLLECTION
   );
   const sessionCollection: Collection<Session> = database.collection(
-    config.SESSIONS_COLLECTION,
+    config.SESSIONS_COLLECTION
   );
 
   const appContext: AppContext = {
@@ -51,7 +50,7 @@ const main = async () => {
     sessionManager: SessionManager.init(
       idGenerator,
       sessionCollection,
-      userCollection,
+      userCollection
     ),
   };
 

@@ -39,9 +39,8 @@ const checkTodoExistence: MiddlewareHandler = async (
   const todoId = Number(ctx.req.param("todoId"));
   const userId = Number(ctx.get("userId"));
 
-  if (!(await todoManager.hasTodo(userId, todoId))) {
+  if (!(await todoManager.hasTodo(userId, todoId)))
     return ctx.json({ message: "Todo is not exist!" }, 404);
-  }
 
   return await next();
 };
@@ -55,9 +54,8 @@ const checkTaskExistence: MiddlewareHandler = async (
   const todoId = Number(ctx.req.param("todoId"));
   const taskId = Number(ctx.req.param("taskId"));
 
-  if (!(await taskManager.hasTask(userId, todoId, taskId))) {
+  if (!(await taskManager.hasTask(userId, todoId, taskId)))
     return ctx.json({ message: "Task is not exist!" }, 404);
-  }
 
   return await next();
 };
@@ -69,9 +67,9 @@ const authenticateUserAndSetUserContext: MiddlewareHandler = async (
   const sessionId = Number(getCookie(ctx, "sessionId"));
   const sessionManager = ctx.get("sessionManager");
 
-  if (!(await sessionManager.hasSession(sessionId))) {
+  if (!(await sessionManager.hasSession(sessionId))) 
     return ctx.json({ message: "Unauthorized" }, 401);
-  }
+  
 
   const session = (await sessionManager.getSessionById(sessionId))!;
 

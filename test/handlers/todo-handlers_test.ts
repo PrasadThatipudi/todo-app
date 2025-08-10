@@ -69,6 +69,7 @@ const createTask = (
   task_id,
   description,
   done,
+  priority: 0,
   todo_id,
   user_id,
 });

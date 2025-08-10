@@ -20,6 +20,7 @@ interface Task {
   task_id: number;
   description: string;
   done: boolean;
+  priority: number;
   todo_id: number;
   user_id: number;
 }
