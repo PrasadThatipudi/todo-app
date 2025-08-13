@@ -10,11 +10,8 @@ interface AppContext {
   sessionManager: SessionManager;
   logger?: (message: string) => void;
 }
-interface TaskJSON {
-  task_id: number;
-  description: string;
-  done: boolean;
-}
+
+type TaskSorter = (first: Task, second: Task) => number;
 
 interface Task {
   task_id: number;
@@ -62,7 +59,7 @@ export type {
   AppVariables,
   Session,
   Task,
-  TaskJSON,
+  TaskSorter,
   Todo,
   TodoJSON,
   User,

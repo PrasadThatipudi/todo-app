@@ -1,5 +1,5 @@
 import { Collection } from "mongodb";
-import { Task } from "../types.ts";
+import { Task, TaskSorter } from "../types.ts";
 
 class TaskManager {
   static init(
@@ -21,6 +21,14 @@ class TaskManager {
         .toArray();
 
     return await this.collection.find({ user_id: userId }).toArray();
+  }
+
+  async getAllTasksWithSorting(
+    userId: number,
+    todoId: number,
+    sorter: TaskSorter
+  ): Promise<Task[]> {
+    return (await this.getAllTasks(userId, todoId)).sort(sorter);
   }
 
   async getTaskById(

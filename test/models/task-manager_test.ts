@@ -7,7 +7,7 @@ import {
   assertObjectMatch,
   assertRejects,
 } from "@std/assert";
-import { Task } from "../../src/types.ts";
+import { Task, TaskSorter } from "../../src/types.ts";
 import { Collection, MongoClient } from "mongodb";
 import { assertSpyCallArgs, stub } from "@std/testing/mock";
 
@@ -124,6 +124,60 @@ describe("getAllTasks", () => {
 
     const tasksOfUser2 = await taskManager.getAllTasks(userId + 1);
     assertEquals(tasksOfUser2.length, 1);
+  });
+});
+
+describe("getAllTasksWithSorting", () => {
+  it("should return all tasks with given sorter applied", async () => {
+    const idGenerator = (start: number) => () => start++;
+    const taskManager = TaskManager.init(idGenerator(0), collection);
+
+    const task1: Task = createTestTask(0, "Task A", 0);
+    const task2: Task = createTestTask(1, "Task B", 0);
+    const task3: Task = createTestTask(2, "Task C", 0);
+
+    await taskManager.addTask(userId, todoId, task1.description);
+    await taskManager.addTask(userId, todoId, task2.description);
+    await taskManager.addTask(userId, todoId, task3.description);
+
+    const asItIsSorter: TaskSorter = () => 0;
+
+    const calledByArgs: [Task, Task][] = [];
+    const stubSorter = (sorter: TaskSorter): TaskSorter => {
+      return (first, second) => {
+        calledByArgs.push([first, second]);
+        return sorter(first, second);
+      };
+    };
+
+    const sortedTasks = await taskManager.getAllTasksWithSorting(
+      userId,
+      todoId,
+      stubSorter(asItIsSorter)
+    );
+
+    assertEquals(calledByArgs.length, 2);
+    assertObjectMatch(
+      calledByArgs[0][0],
+      task2 as unknown as Record<string, unknown>
+    );
+    assertObjectMatch(
+      calledByArgs[0][1],
+      task1 as unknown as Record<string, unknown>
+    );
+    assertObjectMatch(
+      calledByArgs[1][0],
+      task3 as unknown as Record<string, unknown>
+    );
+    assertObjectMatch(
+      calledByArgs[1][1],
+      task2 as unknown as Record<string, unknown>
+    );
+
+    assertEquals(sortedTasks.length, 3);
+    assertEquals(sortedTasks[0].description, "Task A");
+    assertEquals(sortedTasks[1].description, "Task B");
+    assertEquals(sortedTasks[2].description, "Task C");
   });
 });
 

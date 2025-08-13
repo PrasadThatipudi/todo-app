@@ -1,6 +1,4 @@
-import { Task } from "../types.ts";
-
-type TaskSorter = (first: Task, second: Task) => number;
+import { TaskSorter } from "../types.ts";
 
 const sortByTaskIdAsc: TaskSorter = (first, second) =>
   first.task_id - second.task_id;
@@ -26,10 +24,10 @@ const sortByPriorityAsc: TaskSorter = (first, second) =>
 const sortByPriorityDesc: TaskSorter = (first, second) =>
   second.priority - first.priority;
 
-const sortMixer = (...sorters: Array<TaskSorter>) => {
-  return (a: Task, b: Task): number => {
+const sortMixer = (...sorters: Array<TaskSorter>): TaskSorter => {
+  return (first, second) => {
     for (const sorter of sorters) {
-      const result = sorter(a, b);
+      const result = sorter(first, second);
       if (result !== 0) return result;
     }
     return 0;
