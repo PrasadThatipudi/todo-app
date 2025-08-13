@@ -1,33 +1,35 @@
 import { Task } from "../types.ts";
 
-const sortByTaskIdAsc = (first: Task, second: Task): number =>
+type TaskSorter = (first: Task, second: Task) => number;
+
+const sortByTaskIdAsc: TaskSorter = (first, second) =>
   first.task_id - second.task_id;
 
-const sortByTaskIdDesc = (first: Task, second: Task): number =>
+const sortByTaskIdDesc: TaskSorter = (first, second) =>
   second.task_id - first.task_id;
 
-const sortByTaskDescriptionAsc = (first: Task, second: Task): number =>
+const sortByTaskDescriptionAsc: TaskSorter = (first, second) =>
   first.description.localeCompare(second.description);
 
-const sortByTaskDescriptionDesc = (first: Task, second: Task): number =>
+const sortByTaskDescriptionDesc: TaskSorter = (first, second) =>
   second.description.localeCompare(first.description);
 
-const sortByStatusDoneAsc = (first: Task, second: Task): number =>
+const sortByStatusDoneAsc: TaskSorter = (first, second) =>
   Number(first.done) - Number(second.done);
 
-const sortByStatusDoneDesc = (first: Task, second: Task): number =>
+const sortByStatusDoneDesc: TaskSorter = (first, second) =>
   Number(second.done) - Number(first.done);
 
-const sortByPriorityAsc = (first: Task, second: Task): number =>
+const sortByPriorityAsc: TaskSorter = (first, second) =>
   first.priority - second.priority;
 
-const sortByPriorityDesc = (first: Task, second: Task): number =>
+const sortByPriorityDesc: TaskSorter = (first, second) =>
   second.priority - first.priority;
 
-const sortMixer = (...sortFunctions: Array<(a: Task, b: Task) => number>) => {
+const sortMixer = (...sorters: Array<TaskSorter>) => {
   return (a: Task, b: Task): number => {
-    for (const sortFunction of sortFunctions) {
-      const result = sortFunction(a, b);
+    for (const sorter of sorters) {
+      const result = sorter(a, b);
       if (result !== 0) return result;
     }
     return 0;
