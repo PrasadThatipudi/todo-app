@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { SessionManager } from "./models/session-manager.ts";
 import { TaskManager } from "./models/task-manager.ts";
 import { TodoManager } from "./models/todo-manager.ts";
@@ -14,6 +15,7 @@ interface AppContext {
 type TaskSorter = (first: Task, second: Task) => number;
 
 interface Task {
+  _id?: ObjectId;
   task_id: number;
   description: string;
   done: boolean;

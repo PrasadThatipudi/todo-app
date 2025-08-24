@@ -24,6 +24,14 @@ const sortByPriorityAsc: TaskSorter = (first, second) =>
 const sortByPriorityDesc: TaskSorter = (first, second) =>
   second.priority - first.priority;
 
+const sortByTaskInsertionTimeAsc: TaskSorter = (first, second) => {
+  if (!first._id || !second._id) return 0;
+
+  return (
+    first._id.getTimestamp().getTime() - second._id.getTimestamp().getTime()
+  );
+};
+
 const sortMixer = (...sorters: Array<TaskSorter>): TaskSorter => {
   return (first, second) => {
     for (const sorter of sorters) {
@@ -43,5 +51,6 @@ export {
   sortByStatusDoneDesc,
   sortByPriorityAsc,
   sortByPriorityDesc,
+  sortByTaskInsertionTimeAsc,
   sortMixer,
 };
