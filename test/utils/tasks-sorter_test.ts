@@ -11,6 +11,7 @@ import {
   sortByTaskIdAsc,
   sortByTaskIdDesc,
   sortByTaskInsertionTimeAsc,
+  sortByTaskInsertionTimeDesc,
   sortMixer,
 } from "../../src/utils/tasks-sorter.ts";
 import { ObjectId } from "mongodb";
@@ -231,7 +232,7 @@ describe("sortByPriorityDesc", () => {
   });
 });
 
-describe("sortByTaskInsertionTime", () => {
+describe("sortByTaskInsertionTimeAsc", () => {
   it("should return empty array if no tasks are present", () => {
     const tasks: Task[] = [];
     const result = tasks.toSorted(sortByTaskInsertionTimeAsc);
@@ -269,6 +270,50 @@ describe("sortByTaskInsertionTime", () => {
     ];
 
     const result = tasks.toSorted(sortByTaskInsertionTimeAsc);
+
+    assertEquals(result, tasks);
+  });
+});
+
+describe("sortByTaskInsertionDesc", () => {
+  it("should return empty array if no tasks are present", () => {
+    const tasks: Task[] = [];
+    const result = tasks.toSorted(sortByTaskInsertionTimeDesc);
+
+    assertEquals(result, []);
+  });
+
+  it("should return tasks sorted by insertion time in descending order", () => {
+    function objectIdForTimestamp(timeInSeconds: number) {
+      return new ObjectId(
+        timeInSeconds.toString(16).padStart(8, "0").padEnd(24, "0")
+      );
+    }
+    const tasks: Task[] = [
+      { ...createTask(0, "Task 1", false, 1), _id: objectIdForTimestamp(0) },
+      { ...createTask(1, "Task 2", true, 1), _id: objectIdForTimestamp(1) },
+      { ...createTask(2, "Task 3", false, 1), _id: objectIdForTimestamp(2) },
+    ];
+
+    const result = tasks.toSorted(sortByTaskInsertionTimeDesc);
+
+    const expected = [
+      { ...createTask(2, "Task 3", false, 1), _id: objectIdForTimestamp(2) },
+      { ...createTask(1, "Task 2", true, 1), _id: objectIdForTimestamp(1) },
+      { ...createTask(0, "Task 1", false, 1), _id: objectIdForTimestamp(0) },
+    ];
+
+    assertEquals(result, expected);
+  });
+
+  it("should treat tasks without _id as equal in sorting", () => {
+    const tasks: Task[] = [
+      createTask(2, "Task 3", false, 1),
+      createTask(1, "Task 2", true, 1),
+      createTask(0, "Task 1", false, 1),
+    ];
+
+    const result = tasks.toSorted(sortByTaskInsertionTimeDesc);
 
     assertEquals(result, tasks);
   });
