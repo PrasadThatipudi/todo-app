@@ -13,6 +13,17 @@ interface AppContext {
 }
 
 type TaskSorter = (first: Task, second: Task) => number;
+type SortKey =
+  | "task_id:asc"
+  | "task_id:desc"
+  | "description:asc"
+  | "description:desc"
+  | "status:asc"
+  | "status:desc"
+  | "priority:asc"
+  | "priority:desc"
+  | "task_insertion_time:asc"
+  | "task_insertion_time:desc";
 
 interface Task {
   _id?: ObjectId;
@@ -65,4 +76,5 @@ export type {
   Todo,
   TodoJSON,
   User,
+  SortKey,
 };
